@@ -35,7 +35,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["styles/*.css"],
+      "resources": ["styles/*.css", "fonts/*.otf"],
       "matches": ["<all_urls>"]
     }
   ]

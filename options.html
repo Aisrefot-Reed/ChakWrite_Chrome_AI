@@ -11,40 +11,45 @@
 
     <!-- Accessibility Settings -->
     <section>
-      <h2>Accessibility</h2>
+      <h2>Neuro-inclusive Features</h2>
       <div class="setting-item">
-        <label for="neuro-feature">Neuro-inclusive Adaptation:</label>
+        <label for="neuro-feature">Primary Adaptation Mode:</label>
         <select id="neuro-feature">
           <option value="none">None</option>
-          <option value="dyslexia">Dyslexia-friendly</option>
-          <option value="adhd">ADHD-focus</option>
-          <option value="autism">Autism-spectrum</option>
+          <option value="dyslexia">Dyslexia</option>
+          <option value="adhd">ADHD</option>
+          <option value="autism">Autism</option>
         </select>
+        <small>This adapts AI responses to be more suitable for the selected mode.</small>
       </div>
     </section>
 
-    <!-- API Configuration -->
+    <!-- Visual Adaptations -->
     <section>
-      <h2>API Configuration</h2>
+      <h2>Visual Adaptations</h2>
       <div class="setting-item">
-        <label for="api-model">Default AI Model:</label>
-        <select id="api-model">
-          <option value="gemini-pro">Gemini Pro</option>
-          <!-- Other models can be added here -->
+        <label for="font-select">Reading Font:</label>
+        <select id="font-select">
+          <option value="default">Default</option>
+          <option value="dyslexia">Dyslexia-friendly (OpenDyslexic)</option>
         </select>
+      </div>
+      <div class="setting-item">
+        <label for="spacing-slider">Line Spacing: <span id="spacing-value">1.5</span></label>
+        <input type="range" id="spacing-slider" min="1" max="2.5" step="0.1" value="1.5">
       </div>
     </section>
 
-    <!-- User Preferences -->
+    <!-- Other Preferences -->
     <section>
-      <h2>User Preferences</h2>
+      <h2>Other Preferences</h2>
       <div class="setting-item">
-        <label for="ocr-toggle">Enable OCR on Images:</label>
+        <label for="ocr-toggle">Enable OCR on Images (Experimental):</label>
         <input type="checkbox" id="ocr-toggle">
       </div>
     </section>
 
-    <button id="save-btn">Save Settings</button>
+    <button id="save-btn">Save and Apply</button>
     <div id="status-message"></div>
   </div>
   <script src="options.js"></script>

@@ -5,11 +5,15 @@ import { AiApiError, logError } from '../utils/errors.js';
  * @returns {boolean} True if window.ai is available.
  */
 function isAiAvailable() {
+  // In a content script, window.ai is not directly available.
+  // We rely on the background script to have access.
+  // This check is more for popup/options pages.
   return typeof window !== 'undefined' && window.ai;
 }
 
 /**
  * A generic wrapper for creating a session with a specific AI model.
+ * This function is intended to be run in a context where `window.ai` is available (like the popup or background).
  * @param {string} apiType - The type of AI model to create (e.g., 'languageModel', 'writer').
  * @param {object} options - Configuration options for the session.
  * @returns {Promise<object>} The created AI session.
@@ -27,54 +31,90 @@ async function createSession(apiType, options = {}) {
   }
 }
 
-// --- Specific API Functions ---
+// --- Neuro-inclusive Prompt Engineering --- //
 
-async function prompt(payload) {
+function getNeuroPrompt(neuroFeature, basePrompt) {
+  switch (neuroFeature) {
+    case 'dyslexia':
+      return `SYSTEM: You are an assistant for a user with dyslexia. Your primary goal is to make text clear and easy to read.
+      - Use simple, common vocabulary.
+      - Keep sentences short and direct.
+      - Break down complex ideas into smaller, digestible parts.
+      - Avoid jargon and complex sentence structures.
+      USER: ${basePrompt}`;
+    case 'adhd':
+      return `SYSTEM: You are an assistant for a user with ADHD. Your goal is to make text engaging and easy to scan.
+      - Use headings, bullet points, and numbered lists to structure information.
+      - Keep paragraphs very short (1-3 sentences).
+      - Use bold text to highlight key phrases.
+      - Start with a clear summary or conclusion.
+      USER: ${basePrompt}`;
+    case 'autism':
+      return `SYSTEM: You are an assistant for a user on the autism spectrum. Your goal is to be clear, direct, and unambiguous.
+      - Use literal and concrete language.
+      - Avoid idioms, metaphors, sarcasm, and figurative language.
+      - State the main point clearly and explicitly.
+      - Be logical and structured in your response.
+      USER: ${basePrompt}`;
+    default:
+      return basePrompt;
+  }
+}
+
+
+// --- Specific API Functions (to be called from background script) --- //
+
+async function prompt(payload, config) {
   const session = await createSession('languageModel');
-  return session.prompt(payload.text);
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, payload.text);
+  return session.prompt(engineeredPrompt);
 }
 
-async function writer(payload) {
+async function writer(payload, config) {
   const session = await createSession('writer');
-  return session.prompt(payload.text);
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, payload.text);
+  return session.prompt(engineeredPrompt);
 }
 
-async function rewriter(payload) {
+async function rewriter(payload, config) {
   const session = await createSession('rewriter');
-  // Rewriter might need more context, e.g., length, tone
-  return session.rewrite(payload.text, { tone: payload.tone || 'neutral' });
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, `Rewrite this: "${payload.text}"`);
+  return session.rewrite(engineeredPrompt, {
+    tone: payload.tone || 'neutral',
+    length: payload.length || 'same' // 'shorter', 'longer'
+  });
 }
 
-async function summarizer(payload) {
+async function summarizer(payload, config) {
   const session = await createSession('summarizer');
-  return session.summarize(payload.text);
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, `Summarize this: "${payload.text}"`);
+  return session.summarize(engineeredPrompt);
 }
 
-async function translator(payload) {
-  const session = await createSession('translator');
-  return session.translate(payload.text, { targetLanguage: payload.targetLang || 'en' });
+// Simulated Proofreader using the prompt API
+async function proofreader(payload, config) {
+  const proofreadPrompt = `Proofread the following text. Correct any grammar, spelling, and punctuation errors. Only return the corrected text, without any extra comments.
+  Text to proofread: "${payload.text}"`;
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, proofreadPrompt);
+  const session = await createSession('languageModel');
+  return session.prompt(engineeredPrompt);
 }
 
-async function proofreader(payload) {
-  const session = await createSession('languageDetector'); // Note: API name is languageDetector
-  const detected = await session.detect(payload.text);
-  // This is just language detection. True proofreading would be a more complex flow.
-  return `Detected language: ${detected.language}`;
-}
 
-// --- Main Router ---
+// --- Main Router --- //
 
 const apiMap = {
   prompt,
   writer,
   rewriter,
   summarizer,
-  translator,
   proofreader
+  // Translator and other APIs can be added here following the same pattern
 };
 
 /**
  * Generic completion function that routes to the correct AI API.
+ * This function is designed to be called from the background script.
  * @param {string} type - The key for the desired AI function (e.g., 'writer').
  * @param {object} payload - The data to be processed by the AI.
  * @param {object} config - The user's configuration from storage.
@@ -85,20 +125,15 @@ export async function getCompletion(type, payload, config) {
     throw new AiApiError(`Invalid AI action type: ${type}`, type);
   }
 
-  // Here you can enrich the payload with user settings from config
-  // For example, applying neuro-inclusive text adaptations post-generation
-  const neuroFeature = config.userPreferences?.neuroFeature;
-  if (neuroFeature && neuroFeature !== 'none') {
-    payload.text += `\n\n(Please adapt the response for a user with ${neuroFeature})`
-  }
-
   try {
-    const result = await apiMap[type](payload);
-    // Post-processing can happen here based on neuro-inclusive settings
+    // The 'window.ai' object is only available in a specific context (e.g., popup, options).
+    // Content scripts and background service workers need to operate differently.
+    // This implementation assumes this code will be executed in a context with `window.ai`.
+    // For a service worker, you'd need to use `self.ai`.
+    const result = await apiMap[type](payload, config);
     return result;
   } catch (error) {
     logError(error, `getCompletion: ${type}`);
-    // Provide a user-friendly fallback message
-    return `The ${type} operation failed. Please try again.`;
+    return `The ${type} operation failed. The AI model may not be available or an error occurred.`;
   }
 }
