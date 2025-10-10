@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChakWrite Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Settings</h1>
+
+    <!-- Accessibility Settings -->
+    <section>
+      <h2>Accessibility</h2>
+      <div class="setting-item">
+        <label for="neuro-feature">Neuro-inclusive Adaptation:</label>
+        <select id="neuro-feature">
+          <option value="none">None</option>
+          <option value="dyslexia">Dyslexia-friendly</option>
+          <option value="adhd">ADHD-focus</option>
+          <option value="autism">Autism-spectrum</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- API Configuration -->
+    <section>
+      <h2>API Configuration</h2>
+      <div class="setting-item">
+        <label for="api-model">Default AI Model:</label>
+        <select id="api-model">
+          <option value="gemini-pro">Gemini Pro</option>
+          <!-- Other models can be added here -->
+        </select>
+      </div>
+    </section>
+
+    <!-- User Preferences -->
+    <section>
+      <h2>User Preferences</h2>
+      <div class="setting-item">
+        <label for="ocr-toggle">Enable OCR on Images:</label>
+        <input type="checkbox" id="ocr-toggle">
+      </div>
+    </section>
+
+    <button id="save-btn">Save Settings</button>
+    <div id="status-message"></div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
