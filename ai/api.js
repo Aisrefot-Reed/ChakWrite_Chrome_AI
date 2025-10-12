@@ -1,4 +1,4 @@
-import { AiApiError, logError } from '../utils/errors.js';
+
 
 /**
  * Checks if the main AI capability is available.
@@ -120,7 +120,7 @@ const apiMap = {
  * @param {object} config - The user's configuration from storage.
  * @returns {Promise<string>} The result from the AI.
  */
-export async function getCompletion(type, payload, config) {
+async function getCompletion(type, payload, config) {
   if (!apiMap[type]) {
     throw new AiApiError(`Invalid AI action type: ${type}`, type);
   }

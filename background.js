@@ -1,4 +1,12 @@
-import { getConfig, setStorage } from './utils/storage.js';
+try {
+  importScripts(
+    './utils/errors.js',
+    './utils/storage.js',
+    './ai/api.js'
+  );
+} catch (e) {
+  console.error(e);
+}
 
 // --- Chrome Extension Lifecycle --- //
 chrome.runtime.onInstalled.addListener(() => {
