@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ChakWrite AI Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ChakWrite AI</h1>
+      <button id="settings-btn" title="Settings">⚙️</button>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div id="main-dashboard">
+      <textarea id="main-textarea" placeholder="Ask me to write, rewrite, summarize..."></textarea>
+      <div id="mode-switcher" class="button-group">
+        <button class="mode-btn active" data-mode="writer">Write</button>
+        <button class="mode-btn" data-mode="rewriter">Rewrite</button>
+        <button class="mode-btn" data-mode="summarizer">Summarize</button>
+      </div>
+      <button id="execute-btn">Execute</button>
+      <div id="result-display"></div>
+    </div>
+
+    <!-- Settings Panel (Initially hidden) -->
+    <div id="settings-panel" class="hidden">
+      <h2>Settings</h2>
+      <p>Full settings are available on the <a href="#" id="options-link">options page</a>.</p>
+      <button id="back-to-main-btn">Back</button>
+    </div>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
