@@ -1,37 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChakWrite AI Assistant</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>ChakWrite AI</h1>
-      <button id="settings-btn" title="Settings">⚙️</button>
+  <div class="glass-container">
+    <!-- Шапка -->
+    <header class="popup-header">
+      <div class="logo">
+        <span class="logo-icon">✍️</span>
+        <h1>ChakWrite AI</h1>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Настройки" aria-label="Открыть настройки">
+        <span>⚙️</span>
+      </button>
     </header>
 
-    <!-- Main Dashboard -->
-    <div id="main-dashboard">
-      <textarea id="main-textarea" placeholder="Ask me to write, rewrite, summarize..."></textarea>
-      <div id="mode-switcher" class="button-group">
-        <button class="mode-btn active" data-mode="writer">Write</button>
-        <button class="mode-btn" data-mode="rewriter">Rewrite</button>
-        <button class="mode-btn" data-mode="summarizer">Summarize</button>
+    <!-- Основная панель -->
+    <main id="main-dashboard" class="main-panel">
+      <!-- Переключатель режимов -->
+      <div id="mode-switcher" class="mode-switcher" role="tablist" aria-label="Режимы работы">
+        <button class="mode-btn active" data-mode="writer" role="tab" aria-selected="true" aria-controls="mode-content">
+          <span class="mode-icon">📝</span>
+          <span class="mode-label">Написать</span>
+        </button>
+        <button class="mode-btn" data-mode="rewriter" role="tab" aria-selected="false" aria-controls="mode-content">
+          <span class="mode-icon">✍️</span>
+          <span class="mode-label">Переписать</span>
+        </button>
+        <button class="mode-btn" data-mode="summarizer" role="tab" aria-selected="false" aria-controls="mode-content">
+          <span class="mode-icon">📋</span>
+          <span class="mode-label">Резюме</span>
+        </button>
+        <button class="mode-btn" data-mode="proofreader" role="tab" aria-selected="false" aria-controls="mode-content">
+          <span class="mode-icon">✓</span>
+          <span class="mode-label">Проверить</span>
+        </button>
+        <button class="mode-btn" data-mode="autocomplete" role="tab" aria-selected="false" aria-controls="mode-content">
+          <span class="mode-icon">⚡</span>
+          <span class="mode-label">Дополнить</span>
+        </button>
       </div>
-      <button id="execute-btn">Execute</button>
-      <div id="result-display"></div>
-    </div>
 
-    <!-- Settings Panel (Initially hidden) -->
-    <div id="settings-panel" class="hidden">
-      <h2>Settings</h2>
-      <p>Full settings are available on the <a href="#" id="options-link">options page</a>.</p>
-      <button id="back-to-main-btn">Back</button>
-    </div>
+      <!-- Область ввода -->
+      <div class="input-area" id="mode-content" role="tabpanel">
+        <div class="textarea-wrapper">
+          <textarea 
+            id="main-textarea" 
+            placeholder="Введите текст для обработки..."
+            aria-label="Текст для обработки"
+            rows="6"
+          ></textarea>
+          <button 
+            id="voice-input-btn" 
+            class="voice-btn" 
+            title="Голосовой ввод"
+            aria-label="Начать голосовой ввод"
+          >
+            🎤
+          </button>
+        </div>
 
+        <!-- Дополнительные опции для режима переписывания -->
+        <div id="rewriter-options" class="mode-options hidden">
+          <label for="tone-select">Тон:</label>
+          <select id="tone-select" aria-label="Выбор тона">
+            <option value="as-is">Без изменений</option>
+            <option value="formal">Формальный</option>
+            <option value="casual">Неформальный</option>
+            <option value="professional">Профессиональный</option>
+          </select>
+          
+          <label for="length-select">Длина:</label>
+          <select id="length-select" aria-label="Выбор длины">
+            <option value="as-is">Без изменений</option>
+            <option value="shorter">Короче</option>
+            <option value="longer">Длиннее</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Кнопка выполнения -->
+      <button id="execute-btn" class="execute-btn" aria-label="Выполнить действие">
+        <span class="btn-icon">✨</span>
+        <span class="btn-text">Выполнить</span>
+      </button>
+
+      <!-- Область результата -->
+      <div id="result-display" class="result-display" role="status" aria-live="polite" aria-atomic="true">
+        <p class="result-placeholder">Результат появится здесь...</p>
+      </div>
+
+      <!-- Действия с результатом -->
+      <div id="result-actions" class="result-actions hidden">
+        <button id="copy-result-btn" class="action-btn" aria-label="Копировать результат">
+          📋 Копировать
+        </button>
+        <button id="clear-result-btn" class="action-btn" aria-label="Очистить результат">
+          🗑️ Очистить
+        </button>
+      </div>
+    </main>
+
+    <!-- Панель настроек -->
+    <aside id="settings-panel" class="settings-panel hidden">
+      <div class="panel-header">
+        <h2>Быстрые настройки</h2>
+        <button id="back-to-main-btn" class="icon-btn" aria-label="Вернуться назад">
+          ← Назад
+        </button>
+      </div>
+      
+      <div class="settings-content">
+        <p class="settings-info">
+          Полные настройки доступны на 
+          <a href="#" id="options-link" class="link">странице опций</a>.
+        </p>
+        
+        <div class="quick-setting">
+          <label for="quick-neuro-mode">Нейро-режим:</label>
+          <select id="quick-neuro-mode">
+            <option value="none">Нет</option>
+            <option value="dyslexia">Дислексия</option>
+            <option value="adhd">СДВГ</option>
+            <option value="autism">Аутизм</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Статус индикатор -->
+    <div id="status-indicator" class="status-indicator hidden" role="alert" aria-live="assertive"></div>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,6 +1,9 @@
+// src/utils/storage.js
+// Утилиты для работы с chrome.storage.local.
+
 /**
- * Retrieves the full configuration from chrome.storage.local.
- * @returns {Promise<object>} A promise that resolves with the configuration object.
+ * Получает полную конфигурацию из chrome.storage.local.
+ * @returns {Promise<object>} промис с объектом конфигурации
  */
 function getConfig() {
   return new Promise((resolve) => {
@@ -11,9 +14,9 @@ function getConfig() {
 }
 
 /**
- * Retrieves a specific item from chrome.storage.local.
- * @param {string} key - The key of the item to retrieve.
- * @returns {Promise<any>} A promise that resolves with the requested item.
+ * Получает конкретное значение из chrome.storage.local.
+ * @param {string} key - ключ для получения
+ * @returns {Promise<any>} промис с запрошенным значением
  */
 function getStorage(key) {
   return new Promise((resolve) => {
@@ -24,9 +27,9 @@ function getStorage(key) {
 }
 
 /**
- * Saves an item to chrome.storage.local.
- * @param {object} obj - An object with key/value pairs to save.
- * @returns {Promise<void>} A promise that resolves when the item is saved.
+ * Сохраняет значения в chrome.storage.local.
+ * @param {object} obj - объект с парами ключ-значение для сохранения
+ * @returns {Promise<void>} промис, разрешающийся после сохранения
  */
 function setStorage(obj) {
   return new Promise((resolve) => {

@@ -1,51 +1,395 @@
+/* === БАЗОВЫЕ СТИЛИ === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 body {
-  font-family: sans-serif;
-  padding: 20px;
-  background-color: #f9f9f9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px;
+  color: #2d3748;
+  line-height: 1.6;
 }
 
-.container {
-  max-width: 600px;
+/* === СТЕКЛЯННЫЙ КОНТЕЙНЕР === */
+.glass-container {
+  max-width: 800px;
   margin: 0 auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
-h1, h2 {
-  color: #333;
+/* === ШАПКА === */
+.options-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-section {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 20px;
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 10px;
 }
 
-.setting-item {
-  margin-bottom: 15px;
+.logo-icon {
+  font-size: 48px;
+  animation: float 3s ease-in-out infinite;
 }
 
-label {
-  display: inline-block;
-  width: 200px;
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-select, input[type="checkbox"] {
-  margin-left: 10px;
-}
-
-#save-btn {
-  padding: 10px 20px;
-  background-color: #007bff;
+.logo h1 {
+  font-size: 2.5em;
+  font-weight: 700;
   color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-#status-message {
+.subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1em;
   margin-top: 10px;
-  color: green;
+}
+
+/* === СЕКЦИИ НАСТРОЕК === */
+.settings-section {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.section-icon {
+  font-size: 28px;
+}
+
+.section-header h2 {
+  font-size: 1.4em;
+  font-weight: 600;
+  color: white;
+}
+
+/* === ЭЛЕМЕНТЫ НАСТРОЕК === */
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-label {
+  flex: 1;
+  margin-right: 20px;
+}
+
+.setting-label label {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.setting-label small {
+  display: block;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.value-display {
+  display: inline-block;
+  min-width: 35px;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* === СТЕКЛЯННЫЕ ЭЛЕМЕНТЫ ФОРМЫ === */
+.glass-select {
+  min-width: 200px;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #2d3748;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.glass-select:hover {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.glass-select:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/* === СЛАЙДЕР === */
+.glass-slider {
+  width: 200px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.glass-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+}
+
+.glass-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* === ПЕРЕКЛЮЧАТЕЛЬ (TOGGLE SWITCH) === */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  transition: 0.3s;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input:checked + .toggle-slider {
+  background: rgba(72, 187, 120, 0.8);
+  border-color: rgba(72, 187, 120, 1);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-slider:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* === КНОПКИ ДЕЙСТВИЙ === */
+.actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.primary-btn,
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  flex: 1;
+  max-width: 250px;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 18px;
+}
+
+/* === СТАТУС СООБЩЕНИЕ === */
+.status-message {
+  margin-top: 20px;
+  padding: 15px 20px;
+  background: rgba(72, 187, 120, 0.9);
+  color: white;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+}
+
+.status-message.error {
+  background: rgba(245, 101, 101, 0.9);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === ФУТЕР === */
+.options-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+/* === УТИЛИТЫ === */
+.hidden {
+  display: none !important;
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 768px) {
+  body {
+    padding: 20px 10px;
+  }
+
+  .glass-container {
+    padding: 25px 20px;
+  }
+
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .glass-select,
+  .glass-slider {
+    width: 100%;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primary-btn {
+    max-width: 100%;
+  }
+}
+
+/* === СКРОЛЛБАР === */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
 }

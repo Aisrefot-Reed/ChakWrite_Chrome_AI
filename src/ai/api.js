@@ -1,139 +1,306 @@
-
+// src/ai/api.js
+// Универсальный API слой для Chrome AI (Gemini Nano) с поддержкой feature detection,
+// контекстных запросов, нейро-инклюзивных промптов и всех режимов работы.
 
 /**
- * Checks if the main AI capability is available.
- * @returns {boolean} True if window.ai is available.
+ * Проверяет доступность Chrome AI API.
+ * @returns {boolean} True если window.ai или self.ai доступен.
  */
 function isAiAvailable() {
-  // In a content script, window.ai is not directly available.
-  // We rely on the background script to have access.
-  // This check is more for popup/options pages.
-  return typeof window !== 'undefined' && window.ai;
+  const aiContext = typeof window !== 'undefined' ? window.ai : (typeof self !== 'undefined' ? self.ai : null);
+  return !!aiContext;
 }
 
 /**
- * A generic wrapper for creating a session with a specific AI model.
- * This function is intended to be run in a context where `window.ai` is available (like the popup or background).
- * @param {string} apiType - The type of AI model to create (e.g., 'languageModel', 'writer').
- * @param {object} options - Configuration options for the session.
- * @returns {Promise<object>} The created AI session.
- * @throws {AiApiError} If the API is not available or session creation fails.
+ * Получает объект AI в зависимости от контекста (window/self).
+ * @returns {object|null} Объект AI или null
  */
-async function createSession(apiType, options = {}) {
-  if (!isAiAvailable() || !window.ai[apiType]) {
-    throw new AiApiError(`Chrome AI API '${apiType}' is not available.`, apiType);
+function getAiContext() {
+  return typeof window !== 'undefined' ? window.ai : (typeof self !== 'undefined' ? self.ai : null);
+}
+
+/**
+ * Безопасное создание сессии с проверкой доступности функций.
+ * @param {string} apiType - тип API (languageModel, writer, rewriter, summarizer)
+ * @param {object} options - опции для создания сессии
+ * @returns {Promise<object>} созданная сессия
+ * @throws {AiApiError} если API недоступен
+ */
+async function safeCreateSession(apiType, options = {}) {
+  const ai = getAiContext();
+  if (!ai) {
+    throw new AiApiError('Chrome AI API недоступен. Убедитесь что используется Chrome Canary/Dev с включённым флагом.', apiType);
   }
+
+  // Feature detection - проверка доступности конкретного API
+  if (!ai[apiType]) {
+    throw new AiApiError(`API '${apiType}' не поддерживается в этой версии Chrome.`, apiType);
+  }
+
+  // Проверка capabilities (если метод есть)
+  if (ai[apiType].capabilities) {
+    try {
+      const capabilities = await ai[apiType].capabilities();
+      if (capabilities.available === 'no') {
+        throw new AiApiError(`API '${apiType}' недоступен (статус: ${capabilities.available}).`, apiType);
+      }
+    } catch (err) {
+      logError(err, `safeCreateSession capabilities check: ${apiType}`);
+      // Продолжаем даже если capabilities недоступен
+    }
+  }
+
   try {
-    return await window.ai[apiType](options);
+    return await ai[apiType].create(options);
   } catch (error) {
-    logError(error, `createSession: ${apiType}`);
-    throw new AiApiError(`Failed to create '${apiType}' session.`, apiType);
+    logError(error, `safeCreateSession: ${apiType}`);
+    throw new AiApiError(`Не удалось создать сессию '${apiType}': ${error.message}`, apiType);
   }
 }
 
-// --- Neuro-inclusive Prompt Engineering --- //
+/**
+ * Формирует контекст из истории и текущей информации.
+ * @param {object} config - конфигурация пользователя
+ * @param {string} userInput - текущий запрос пользователя
+ * @returns {string} форматированный контекст
+ */
+function buildContext(config, userInput) {
+  const context = config.context || {};
+  const parts = [];
 
+  // Добавляем последний выделенный текст, если есть
+  if (context.lastSelectedText) {
+    parts.push(`Контекст (последний выделенный текст): "${context.lastSelectedText}"`);
+  }
+
+  // Добавляем текущий запрос
+  parts.push(`Запрос: "${userInput}"`);
+
+  return parts.join('\n');
+}
+
+/**
+ * Применяет нейро-инклюзивные промпт-паттерны в зависимости от настроек.
+ * @param {string} neuroFeature - режим (dyslexia, adhd, autism, none)
+ * @param {string} basePrompt - базовый промпт
+ * @returns {string} обогащённый промпт
+ */
 function getNeuroPrompt(neuroFeature, basePrompt) {
   switch (neuroFeature) {
     case 'dyslexia':
-      return `SYSTEM: You are an assistant for a user with dyslexia. Your primary goal is to make text clear and easy to read.
-      - Use simple, common vocabulary.
-      - Keep sentences short and direct.
-      - Break down complex ideas into smaller, digestible parts.
-      - Avoid jargon and complex sentence structures.
-      USER: ${basePrompt}`;
+      return `SYSTEM: Ты помощник для пользователя с дислексией. Твоя главная цель — сделать текст максимально понятным и лёгким для чтения.
+- Используй простые, распространённые слова.
+- Пиши короткие и прямые предложения.
+- Разбивай сложные идеи на маленькие, понятные части.
+- Избегай жаргона и сложных конструкций.
+
+USER: ${basePrompt}`;
     case 'adhd':
-      return `SYSTEM: You are an assistant for a user with ADHD. Your goal is to make text engaging and easy to scan.
-      - Use headings, bullet points, and numbered lists to structure information.
-      - Keep paragraphs very short (1-3 sentences).
-      - Use bold text to highlight key phrases.
-      - Start with a clear summary or conclusion.
-      USER: ${basePrompt}`;
+      return `SYSTEM: Ты помощник для пользователя с СДВГ. Твоя цель — сделать текст захватывающим и лёгким для сканирования.
+- Используй заголовки, маркированные и нумерованные списки для структурирования.
+- Делай абзацы очень короткими (1-3 предложения).
+- Выделяй ключевые фразы жирным.
+- Начинай с чёткого резюме или вывода.
+
+USER: ${basePrompt}`;
     case 'autism':
-      return `SYSTEM: You are an assistant for a user on the autism spectrum. Your goal is to be clear, direct, and unambiguous.
-      - Use literal and concrete language.
-      - Avoid idioms, metaphors, sarcasm, and figurative language.
-      - State the main point clearly and explicitly.
-      - Be logical and structured in your response.
-      USER: ${basePrompt}`;
+      return `SYSTEM: Ты помощник для пользователя в спектре аутизма. Твоя цель — быть максимально ясным, прямым и однозначным.
+- Используй буквальный и конкретный язык.
+- Избегай идиом, метафор, сарказма и переносных значений.
+- Формулируй главную мысль чётко и явно.
+- Будь логичным и структурированным в ответах.
+
+USER: ${basePrompt}`;
     default:
       return basePrompt;
   }
 }
 
+// ========== ОСНОВНЫЕ API ФУНКЦИИ ========== //
 
-// --- Specific API Functions (to be called from background script) --- //
-
+/**
+ * Универсальный prompt через languageModel.
+ * @param {object} payload - данные запроса
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} результат AI
+ */
 async function prompt(payload, config) {
-  const session = await createSession('languageModel');
-  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, payload.text);
+  const session = await safeCreateSession('languageModel', { temperature: 0.7, topK: 3 });
+  const contextualPrompt = buildContext(config, payload.text);
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, contextualPrompt);
   return session.prompt(engineeredPrompt);
 }
 
+/**
+ * Writer API - генерация текста с нуля.
+ * @param {object} payload - данные запроса
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} сгенерированный текст
+ */
 async function writer(payload, config) {
-  const session = await createSession('writer');
-  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, payload.text);
-  return session.prompt(engineeredPrompt);
+  try {
+    const session = await safeCreateSession('writer', { sharedContext: payload.context || '' });
+    const contextualPrompt = buildContext(config, payload.text);
+    const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, contextualPrompt);
+    return session.write(engineeredPrompt);
+  } catch (error) {
+    // Fallback на languageModel
+    logError(error, 'writer fallback');
+    const fallbackPrompt = `Напиши текст на основе: "${payload.text}"`;
+    return prompt({ text: fallbackPrompt }, config);
+  }
 }
 
+/**
+ * Rewriter API - переписывание текста с изменением тона/длины.
+ * @param {object} payload - данные запроса (text, tone, length)
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} переписанный текст
+ */
 async function rewriter(payload, config) {
-  const session = await createSession('rewriter');
-  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, `Rewrite this: "${payload.text}"`);
-  return session.rewrite(engineeredPrompt, {
-    tone: payload.tone || 'neutral',
-    length: payload.length || 'same' // 'shorter', 'longer'
-  });
+  try {
+    const session = await safeCreateSession('rewriter');
+    const engineeredPrompt = getNeuroPrompt(
+      config.userPreferences?.neuroFeature,
+      `Перепиши следующий текст: "${payload.text}"`
+    );
+    return session.rewrite(engineeredPrompt, {
+      tone: payload.tone || 'as-is',
+      length: payload.length || 'as-is'
+    });
+  } catch (error) {
+    // Fallback на languageModel
+    logError(error, 'rewriter fallback');
+    const fallbackPrompt = `Перепиши этот текст (тон: ${payload.tone || 'нейтральный'}, длина: ${payload.length || 'та же'}): "${payload.text}"`;
+    return prompt({ text: fallbackPrompt }, config);
+  }
 }
 
+/**
+ * Summarizer API - создание краткого содержания.
+ * @param {object} payload - данные запроса
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} резюме текста
+ */
 async function summarizer(payload, config) {
-  const session = await createSession('summarizer');
-  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, `Summarize this: "${payload.text}"`);
-  return session.summarize(engineeredPrompt);
+  try {
+    const session = await safeCreateSession('summarizer', {
+      type: payload.type || 'key-points',
+      format: payload.format || 'plain-text',
+      length: payload.length || 'short'
+    });
+    const engineeredPrompt = getNeuroPrompt(
+      config.userPreferences?.neuroFeature,
+      `Создай резюме: "${payload.text}"`
+    );
+    return session.summarize(engineeredPrompt);
+  } catch (error) {
+    // Fallback на languageModel
+    logError(error, 'summarizer fallback');
+    const fallbackPrompt = `Создай краткое резюме этого текста: "${payload.text}"`;
+    return prompt({ text: fallbackPrompt }, config);
+  }
 }
 
-// Simulated Proofreader using the prompt API
+/**
+ * Proofreader - проверка грамматики, орфографии, пунктуации.
+ * @param {object} payload - данные запроса
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} исправленный текст
+ */
 async function proofreader(payload, config) {
-  const proofreadPrompt = `Proofread the following text. Correct any grammar, spelling, and punctuation errors. Only return the corrected text, without any extra comments.
-  Text to proofread: "${payload.text}"`;
+  const proofreadPrompt = `Проверь и исправь грамматику, орфографию и пунктуацию в этом тексте. Верни ТОЛЬКО исправленный текст без комментариев.
+
+Текст: "${payload.text}"`;
   const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, proofreadPrompt);
-  const session = await createSession('languageModel');
-  return session.prompt(engineeredPrompt);
+  
+  try {
+    const session = await safeCreateSession('languageModel', { temperature: 0.3, topK: 1 });
+    return session.prompt(engineeredPrompt);
+  } catch (error) {
+    logError(error, 'proofreader');
+    throw new AiApiError('Не удалось выполнить корректуру текста.', 'proofreader');
+  }
 }
 
+/**
+ * Autocomplete - предложение продолжения текста.
+ * @param {object} payload - данные запроса (text - текст до курсора)
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} предложенное продолжение
+ */
+async function autocomplete(payload, config) {
+  const autocompletePrompt = `Продолжи следующий текст естественным образом (не более 1-2 предложений):
 
-// --- Main Router --- //
+"${payload.text}"`;
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, autocompletePrompt);
+  
+  try {
+    const session = await safeCreateSession('languageModel', { temperature: 0.8, topK: 5 });
+    const result = await session.prompt(engineeredPrompt);
+    // Возвращаем только новую часть (убираем дублирование исходного текста)
+    return result.replace(payload.text, '').trim();
+  } catch (error) {
+    logError(error, 'autocomplete');
+    return '';
+  }
+}
+
+/**
+ * Paragraph - генерация нового абзаца на основе контекста.
+ * @param {object} payload - данные запроса (text - тема/контекст)
+ * @param {object} config - конфигурация
+ * @returns {Promise<string>} новый абзац
+ */
+async function paragraph(payload, config) {
+  const paragraphPrompt = `Напиши один связный абзац на тему: "${payload.text}".
+Абзац должен быть информативным и хорошо структурированным.`;
+  const engineeredPrompt = getNeuroPrompt(config.userPreferences?.neuroFeature, paragraphPrompt);
+  
+  try {
+    const session = await safeCreateSession('languageModel', { temperature: 0.7, topK: 3 });
+    return session.prompt(engineeredPrompt);
+  } catch (error) {
+    logError(error, 'paragraph');
+    throw new AiApiError('Не удалось сгенерировать абзац.', 'paragraph');
+  }
+}
+
+// ========== МАРШРУТИЗАЦИЯ ========== //
 
 const apiMap = {
   prompt,
   writer,
   rewriter,
   summarizer,
-  proofreader
-  // Translator and other APIs can be added here following the same pattern
+  proofreader,
+  autocomplete,
+  paragraph
 };
 
 /**
- * Generic completion function that routes to the correct AI API.
- * This function is designed to be called from the background script.
- * @param {string} type - The key for the desired AI function (e.g., 'writer').
- * @param {object} payload - The data to be processed by the AI.
- * @param {object} config - The user's configuration from storage.
- * @returns {Promise<string>} The result from the AI.
+ * Универсальная функция для вызова любого AI действия.
+ * @param {string} type - тип действия (writer, rewriter, proofreader и т.д.)
+ * @param {object} payload - данные для AI
+ * @param {object} config - конфигурация пользователя
+ * @returns {Promise<string>} результат AI обработки
  */
 async function getCompletion(type, payload, config) {
   if (!apiMap[type]) {
-    throw new AiApiError(`Invalid AI action type: ${type}`, type);
+    throw new AiApiError(`Недопустимый тип действия: ${type}`, type);
   }
 
   try {
-    // The 'window.ai' object is only available in a specific context (e.g., popup, options).
-    // Content scripts and background service workers need to operate differently.
-    // This implementation assumes this code will be executed in a context with `window.ai`.
-    // For a service worker, you'd need to use `self.ai`.
     const result = await apiMap[type](payload, config);
     return result;
   } catch (error) {
     logError(error, `getCompletion: ${type}`);
-    return `The ${type} operation failed. The AI model may not be available or an error occurred.`;
+    
+    // Для некоторых ошибок возвращаем понятное сообщение
+    if (error instanceof AiApiError) {
+      throw error;
+    }
+    
+    throw new AiApiError(`Операция '${type}' не выполнена. ${error.message}`, type);
   }
 }
