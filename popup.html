@@ -9,19 +9,24 @@
   <div class="container">
     <header>
       <h1>ChakWrite AI</h1>
-      <button id="settings-btn" title="Settings">⚙️</button>
+      <div>
+        <button id="mic-btn" title="Voice input">🎤</button>
+        <button id="settings-btn" title="Settings">⚙️</button>
+      </div>
     </header>
 
     <!-- Main Dashboard -->
     <div id="main-dashboard">
-      <textarea id="main-textarea" placeholder="Ask me to write, rewrite, summarize..."></textarea>
+      <textarea id="main-textarea" placeholder="Type or use the mic, then choose a mode..."></textarea>
       <div id="mode-switcher" class="button-group">
         <button class="mode-btn active" data-mode="writer">Write</button>
         <button class="mode-btn" data-mode="rewriter">Rewrite</button>
         <button class="mode-btn" data-mode="summarizer">Summarize</button>
+        <button class="mode-btn" data-mode="proofreader">Proofread</button>
+        <button class="mode-btn" data-mode="autocomplete">Autocomplete</button>
       </div>
       <button id="execute-btn">Execute</button>
-      <div id="result-display"></div>
+      <div id="result-display" role="region" aria-live="polite" aria-busy="false"></div>
     </div>
 
     <!-- Settings Panel (Initially hidden) -->

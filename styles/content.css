@@ -1,52 +1,60 @@
 @font-face {
   font-family: 'OpenDyslexic';
-  src: url('chrome-extension://__MSG_@@extension_id__/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  src: url('../fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-display: swap;
 }
 
-/* --- Overlay UI --- */
+/* --- Overlay UI (Glassmorphism) --- */
 #chakwrite-overlay {
   position: fixed;
-  z-index: 999999;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 2147483647; /* max to float above */
+  background: rgba(45,45,45,0.85);
+  color: #e0e0e0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: none;
-  font-family: sans-serif;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  min-width: 200px;
 }
 
 .chakwrite-menu {
-  padding: 4px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .chakwrite-menu button {
-  background: none;
-  border: none;
-  padding: 8px 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 8px 12px;
   text-align: left;
   cursor: pointer;
   width: 100%;
   font-size: 14px;
-  color: #333;
+  color: #f5f5f5;
+  border-radius: 10px;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.chakwrite-menu button:hover {
-  background-color: #f0f0f0;
+.chakwrite-menu button:hover,
+.chakwrite-menu button:focus {
+  background: rgba(255,255,255,0.12);
+  outline: none;
+}
+
+.chakwrite-menu button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 /* --- Visual Adaptations --- */
-
-/* 
-  NOTE: For a real implementation, you would need to include the OpenDyslexic font files 
-  in your extension and declare them in the manifest's web_accessible_resources.
-  Then you would use @font-face to define it.
-*/
-.chakwrite-dyslexia-font body,
-.chakwrite-dyslexia-font p,
-.chakwrite-dyslexia-font div,
-.chakwrite-dyslexia-font span,
-.chakwrite-dyslexia-font a {
+body.chakwrite-dyslexia-font,
+body.chakwrite-dyslexia-font * {
   font-family: 'OpenDyslexic', sans-serif !important;
 }
+
+/* ADHD spacing utility (applied inline via JS line-height) */

@@ -1,92 +1,160 @@
 try {
   importScripts(
     './utils/errors.js',
-    './utils/storage.js',
-    './ai/api.js'
+    './utils/storage.js'
+    // Do not import ai/api.js here, it's used in the offscreen document
   );
 } catch (e) {
-  console.error(e);
+  console.error('Error importing scripts in background.js:', e);
 }
 
 // --- Chrome Extension Lifecycle --- //
 chrome.runtime.onInstalled.addListener(() => {
   console.log("ChakWrite AI Assistant installed.");
-  // Initialize default settings
   setStorage({
-    userPreferences: { neuroFeature: 'none' },
-    accessibility: { font: 'default', spacing: 1.0, enableOcr: false }
+    userPreferences: { neuroFeature: 'none', theme: 'dark', realtimeProofreader: false, autocompleteOnTab: true },
+    accessibility: { font: 'default', spacing: 1.4, enableOcr: false }
   });
 });
 
-// --- Context Management --- //
-let activeContext = {};
-function updateContext(data) {
-  activeContext = { ...activeContext, ...data };
-  console.log("Context updated:", activeContext);
+// --- Offscreen Document Management --- //
+let creatingOffscreenDocument;
+let offscreenDocumentActive = false;
+let jobQueue = [];
+let responseCallbacks = {};
+let responseTimers = {};
+
+async function hasOffscreenDocument() {
+  if (offscreenDocumentActive) return true;
+  if (chrome.runtime.getContexts) {
+      const contexts = await chrome.runtime.getContexts({
+          contextTypes: ['OFFSCREEN_DOCUMENT'],
+          documentUrls: [chrome.runtime.getURL('offscreen.html')]
+      });
+      offscreenDocumentActive = contexts.length > 0;
+      return offscreenDocumentActive;
+  } else {
+      // Fallback for older versions if needed, though getContexts is standard
+      return false;
+  }
 }
 
-// --- AI Execution Engine --- //
-
-/**
- * Injects and executes a script in the active tab to access `window.ai`.
- * @param {string} functionName The name of the function to call from the `ai/api.js` module.
- * @param {object} payload The data payload for the AI function.
- * @returns {Promise<any>} The result from the AI execution.
- */
-async function executeAiScript(functionName, payload) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) throw new Error("No active tab found.");
-
-  const config = await getConfig();
-
-  const results = await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ['utils/errors.js', 'ai/api.js'], // Make sure dependencies are loaded
-    func: (type, pl, conf) => {
-      // This function runs in the content script's isolated world, but `window.ai` is available.
-      // We need to re-import the function here to have access to it.
-      return getCompletion(type, pl, conf);
-    },
-    args: [functionName, payload, config],
-    world: 'MAIN' // Execute in the main world to access `window.ai`
-  });
-
-  if (chrome.runtime.lastError) {
-    throw new Error(chrome.runtime.lastError.message);
+async function setupOffscreenDocument() {
+  if (await hasOffscreenDocument()) {
+    return;
   }
 
-  // The result is wrapped in an object, extract it.
-  return results[0].result;
+  if (creatingOffscreenDocument) {
+    await creatingOffscreenDocument;
+    return;
+  }
+
+  creatingOffscreenDocument = chrome.offscreen.createDocument({
+    url: 'offscreen.html',
+    reasons: ['USER_ACTION'],
+    justification: 'Required to access the window.ai API for AI processing.',
+  });
+
+  await creatingOffscreenDocument;
+  creatingOffscreenDocument = null;
+  offscreenDocumentActive = true;
+
+  // Process any queued jobs
+  console.log(`Offscreen document created. Processing ${jobQueue.length} queued jobs.`);
+  jobQueue.forEach(job => sendMessageToOffscreen(job.request, job.sendResponse));
+  jobQueue = [];
+}
+
+function sendMessageToOffscreen(request, sendResponse) {
+    const requestId = `${Date.now()}-${Math.random()}`;
+    let responded = false;
+    responseCallbacks[requestId] = (payload) => {
+        if (responded) return;
+        responded = true;
+        clearTimeout(responseTimers[requestId]);
+        delete responseTimers[requestId];
+        sendResponse(payload);
+    };
+    request.requestId = requestId; // Tag request with a unique ID
+    chrome.runtime.sendMessage(request);
+    // Timeout safeguard
+    responseTimers[requestId] = setTimeout(() => {
+        if (!responded) {
+            responded = true;
+            delete responseCallbacks[requestId];
+            sendResponse({ success: false, error: 'AI request timed out' });
+        }
+    }, 15000);
 }
 
 
 // --- Main Message Listener --- //
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("Background script received message:", request.action);
+  // Listener for responses from the offscreen document
+  if (request.action === 'aiActionResponse') {
+    const callback = responseCallbacks[request.data.originalRequest.requestId];
+    if (callback) {
+      callback(request.data);
+      delete responseCallbacks[request.data.originalRequest.requestId];
+      clearTimeout(responseTimers[request.data.originalRequest.requestId]);
+      delete responseTimers[request.data.originalRequest.requestId];
+    }
+    return false; // Not an async response from this listener's perspective
+  }
 
-  if (request.action === 'updateContext') {
-    updateContext(request.data);
-    sendResponse({ success: true });
+  // --- Actions that require the AI API --- //
+  if (request.action === 'performAiAction') {
+    (async () => {
+      await setupOffscreenDocument();
+      const config = await getConfig();
+      const fullRequest = {
+        target: 'offscreen',
+        action: request.action,
+        data: { ...request.data, config }
+      };
+      sendMessageToOffscreen(fullRequest, sendResponse);
+    })();
+    return true; // Indicates asynchronous response
+  }
 
-  } else if (request.action === 'performAiAction') {
-    executeAiScript(request.data.type, request.data.payload)
-      .then(result => sendResponse({ success: true, data: result }))
-      .catch(error => sendResponse({ success: false, error: error.message }));
-    return true; // Indicates asynchronous response.
-
-  } else if (request.action === 'getInitialState') {
-    getConfig().then(config => {
+  // --- Other actions --- //
+  if (request.action === 'getInitialState') {
+    getStorage().then(config => {
       sendResponse({ success: true, config });
     });
     return true;
+  }
 
-  } else if (request.action === 'applyVisualChanges') {
+  if (request.action === 'applyVisualChanges') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
+      if (tabs[0] && tabs[0].id) {
         chrome.tabs.sendMessage(tabs[0].id, { action: 'updateVisuals', settings: request.settings });
       }
     });
+    return false;
+  }
+
+  if (request.action === 'updateContext') {
+    const { selectedText } = request.data || {};
+    if (selectedText) {
+      setStorage({ context: { lastSelectedText: selectedText, updatedAt: Date.now() } });
+    }
+    return false;
   }
 
   return false;
+});
+
+// --- Keyboard shortcuts (commands) --- //
+chrome.commands?.onCommand.addListener((command) => {
+  if (command === 'rewrite_selection' || command === 'proofread_selection') {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]?.id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: 'performQuickAction',
+          type: command === 'rewrite_selection' ? 'rewriter' : 'proofreader'
+        });
+      }
+    });
+  }
 });

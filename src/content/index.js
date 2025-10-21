@@ -1,8 +1,10 @@
+// src/content/index.js
+// Контент-скрипт. Применяет визуальные адаптации, показывает оверлей действий и выполняет замены текста на странице.
+
 let settings = {};
 let lastSelection = { range: null, input: null };
 
-// --- Initial State --- //
-// Request settings from the background script on load
+// --- Начальная инициализация состояния из background --- //
 chrome.runtime.sendMessage({ action: 'getInitialState' }, response => {
   if (response.success) {
     settings = response.config;
@@ -12,7 +14,7 @@ chrome.runtime.sendMessage({ action: 'getInitialState' }, response => {
   }
 });
 
-// Listen for updates from the background script (e.g., when options change)
+// Слушаем обновления настроек (например, с options)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'updateVisuals') {
     settings.accessibility = request.settings;
@@ -20,6 +22,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
   }
   if (request.action === 'performQuickAction') {
+    // Быстрое действие с клавиатуры: берём выделенный текст либо текст из активного инпута
     const sel = window.getSelection();
     let text = '';
     if (sel && sel.toString().trim()) {
@@ -36,13 +39,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       handleOverlayAction(request.type, text);
       sendResponse({ success: true });
     } else {
-      sendResponse({ success: false, error: 'No text selected' });
+      sendResponse({ success: false, error: 'Нет выделенного текста' });
     }
     return true;
   }
 });
 
-// Track selection before overlay interactions
+// Запоминаем текущее выделение для корректной замены
 document.addEventListener('mouseup', () => {
   const sel = window.getSelection();
   if (sel && sel.rangeCount > 0) {
@@ -59,32 +62,31 @@ document.addEventListener('mouseup', () => {
   }
 });
 
-// --- Visual Adaptations --- //
+// --- Визуальные адаптации (шрифт, межстрочный интервал, контраст, OCR) --- //
 function applyVisuals(accessibilitySettings) {
   if (!accessibilitySettings) return;
 
   const body = document.body;
-  // Reset classes
   body.classList.remove('chakwrite-dyslexia-font', 'chakwrite-adhd-spacing');
 
-  // Apply font changes
+  // Дизлексия: подключаем дружественный шрифт
   if (accessibilitySettings.font === 'dyslexia') {
     body.classList.add('chakwrite-dyslexia-font');
   }
 
-  // Apply spacing changes
+  // Межстрочный интервал
   if (accessibilitySettings.spacing) {
     body.style.lineHeight = String(accessibilitySettings.spacing);
   }
 
-  // High contrast mode
+  // Повышенный контраст
   if (accessibilitySettings.highContrast) {
     body.style.filter = 'contrast(1.2)';
   } else {
     body.style.removeProperty('filter');
   }
 
-  // OCR toggle: attach click handlers when enabled
+  // Подготовка OCR по клику на изображениях, если включено
   if (accessibilitySettings.enableOcr) {
     document.querySelectorAll('img:not([data-chak-ocr])').forEach(img => {
       img.dataset.chakOcr = '1';
@@ -95,7 +97,7 @@ function applyVisuals(accessibilitySettings) {
   }
 }
 
-// --- Text Selection & UI Overlay --- //
+// --- Появление оверлея с действиями при выделении текста --- //
 document.addEventListener('mouseup', (event) => {
   const selectedText = window.getSelection().toString().trim();
   if (selectedText.length > 10) {
@@ -110,19 +112,19 @@ function showUiOverlay(x, y, text) {
     overlay = document.createElement('div');
     overlay.id = 'chakwrite-overlay';
     overlay.setAttribute('role', 'menu');
-    overlay.setAttribute('aria-label', 'ChakWrite actions');
+    overlay.setAttribute('aria-label', 'Действия ChakWrite');
     document.body.appendChild(overlay);
   }
 
-  // Populate overlay with actions
+  // Кнопки действий
   overlay.innerHTML = `
     <div class="chakwrite-menu">
-      <button data-action="rewriter" role="menuitem" tabindex="0">Rewrite</button>
-      <button data-action="proofreader" role="menuitem" tabindex="0">Proofread</button>
-      ${settings.userPreferences?.neuroFeature === 'dyslexia' ? '<button data-action="simplifier" role="menuitem" tabindex="0">Simplify</button>' : ''}
+      <button data-action="rewriter" role="menuitem" tabindex="0">Перефразировать</button>
+      <button data-action="proofreader" role="menuitem" tabindex="0">Проверить грамматику</button>
+      ${settings.userPreferences?.neuroFeature === 'dyslexia' ? '<button data-action="simplifier" role="menuitem" tabindex="0">Упростить</button>' : ''}
     </div>
   `;
-  
+
   overlay.style.left = `${Math.min(x, window.innerWidth - 220)}px`;
   overlay.style.top = `${Math.min(y, window.innerHeight - 140)}px`;
   overlay.style.display = 'block';
@@ -130,7 +132,7 @@ function showUiOverlay(x, y, text) {
   const buttons = overlay.querySelectorAll('button');
   if (buttons[0]) buttons[0].focus();
 
-  // Keyboard navigation
+  // Навигация клавиатурой
   overlay.onkeydown = (e) => {
     const focusables = Array.from(overlay.querySelectorAll('button'));
     const idx = focusables.indexOf(document.activeElement);
@@ -147,7 +149,7 @@ function showUiOverlay(x, y, text) {
     }
   };
 
-  // Add event listeners
+  // Обработчики кликов
   overlay.querySelectorAll('button').forEach(button => {
     button.addEventListener('click', (e) => {
       const action = e.target.dataset.action;
@@ -157,8 +159,17 @@ function showUiOverlay(x, y, text) {
   });
 }
 
+// Закрытие оверлея при клике вне его
+document.addEventListener('mousedown', (event) => {
+  const overlay = document.getElementById('chakwrite-overlay');
+  if (overlay && !overlay.contains(event.target)) {
+    overlay.style.display = 'none';
+  }
+}, { passive: true });
+
+// Замена текста в активном поле (input/textarea) или в contenteditable
 function replaceInActiveEditable(replacement) {
-  // Input/textarea case
+  // Случай input/textarea
   if (lastSelection.input && lastSelection.input.el) {
     const el = lastSelection.input.el;
     const start = lastSelection.input.start;
@@ -168,7 +179,7 @@ function replaceInActiveEditable(replacement) {
     el.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
   }
-  // Content editable / DOM selection case
+  // Случай contenteditable / произвольный Range
   if (lastSelection.range) {
     const range = lastSelection.range;
     range.deleteContents();
@@ -178,47 +189,45 @@ function replaceInActiveEditable(replacement) {
   return false;
 }
 
+// Выполнение действия оверлея через background/offscreen + post-форматирование
 function handleOverlayAction(action, text) {
   let payloadType = action;
   let payload = { text };
 
+  // Кнопка «Упростить» маппится на rewriter с особым тоном
   if (action === 'simplifier') {
     payloadType = 'rewriter';
-    payload.tone = 'simpler'; // We can define custom tones
+    payload.tone = 'simpler';
   }
 
   chrome.runtime.sendMessage(
     { action: 'performAiAction', data: { type: payloadType, payload } },
     (response) => {
       if (response.success) {
-        // Neuro-inclusive post-formatting (ADHD: short paragraphs)
+        // ADHD: автоматическое разбиение на короткие абзацы
         let output = response.data || '';
         if (settings?.userPreferences?.neuroFeature === 'adhd' && output) {
           const parts = output.split(/(?<=[.!?])\s+/).filter(Boolean);
-          output = parts.map(p => p.trim()).reduce((acc, sent, i) => {
+          output = parts.map(p => p.trim()).reduce((acc, sent) => {
             const prev = acc[acc.length - 1] || '';
             if (!prev) return [sent];
-            if (prev.split(' ').length < 20) {
-              acc[acc.length - 1] = prev + ' ' + sent;
-            } else {
-              acc.push(sent);
-            }
+            if (prev.split(' ').length < 20) acc[acc.length - 1] = prev + ' ' + sent;
+            else acc.push(sent);
             return acc;
           }, []).join('\n\n');
         }
-        // Replace selected text with the result
         if (!replaceInActiveEditable(output)) {
-          alert('Could not replace the selected text automatically. Result copied to clipboard.');
+          alert('Не удалось автоматически заменить текст. Результат скопирован в буфер обмена.');
           navigator.clipboard && navigator.clipboard.writeText(output).catch(()=>{});
         }
       } else {
-        alert(`Error: ${response.error}`);
+        alert(`Ошибка: ${response.error}`);
       }
     }
   );
 }
 
-// --- OCR (experimental) --- //
+// --- OCR: сначала TextDetector, затем (опционально) Tesseract.js --- //
 async function runOcrOnImage(img) {
   try {
     if ('TextDetector' in window) {
@@ -228,34 +237,25 @@ async function runOcrOnImage(img) {
       const content = texts.map(t => t.rawValue).join('\n');
       if (content) {
         chrome.runtime.sendMessage({ action: 'updateContext', data: { selectedText: content } });
-        alert('Extracted text added to context.');
+        alert('Извлечённый текст добавлен в контекст.');
       } else {
-        alert('No text detected.');
+        alert('Текст не обнаружен.');
       }
       return;
     }
 
-    // Fallback: try lazy-load Tesseract.js from extension bundle
+    // Пытаемся лениво загрузить Tesseract.js из пакета расширения
     const tesseractUrl = chrome.runtime.getURL('vendor/tesseract.min.js');
     const ok = await fetch(tesseractUrl).then(r => r.ok).catch(() => false);
-    if (!ok) {
-      alert('OCR not available: TextDetector unsupported and Tesseract assets missing. Place vendor/tesseract.min.js and models locally.');
-      return;
-    }
+    if (!ok) { alert('OCR недоступен: нет TextDetector и не поставлены ассеты Tesseract.'); return; }
+
     await new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = tesseractUrl;
-      s.onload = () => res();
-      s.onerror = rej;
+      s.src = tesseractUrl; s.onload = res; s.onerror = rej;
       document.documentElement.appendChild(s);
     });
+    if (!window.Tesseract) { alert('Не удалось загрузить Tesseract.'); return; }
 
-    if (!window.Tesseract) {
-      alert('Failed to load Tesseract.');
-      return;
-    }
-
-    // Draw image to canvas to get data URL
     const canvas = document.createElement('canvas');
     canvas.width = img.naturalWidth || img.width;
     canvas.height = img.naturalHeight || img.height;
@@ -273,25 +273,17 @@ async function runOcrOnImage(img) {
     const content = (text || '').trim();
     if (content) {
       chrome.runtime.sendMessage({ action: 'updateContext', data: { selectedText: content } });
-      alert('Extracted text added to context.');
+      alert('Извлечённый текст добавлен в контекст.');
     } else {
-      alert('No text detected.');
+      alert('Текст не обнаружен.');
     }
   } catch (e) {
     console.error('OCR error', e);
-    alert('OCR failed.');
+    alert('Сбой OCR.');
   }
 }
 
-// Close overlay when clicking away
-document.addEventListener('mousedown', (event) => {
-  const overlay = document.getElementById('chakwrite-overlay');
-  if (overlay && !overlay.contains(event.target)) {
-    overlay.style.display = 'none';
-  }
-}, { passive: true });
-
-// --- Real-time proofreader (optional) --- //
+// --- Реальный тайм proofreader (необяз.) --- //
 function setupRealtimeProofreader() {
   if (!settings?.userPreferences?.realtimeProofreader) return;
   const handler = debounce(async (e) => {
@@ -302,8 +294,8 @@ function setupRealtimeProofreader() {
       { action: 'performAiAction', data: { type: 'proofreader', payload: { text } } },
       (response) => {
         if (response?.success && response.data) {
-          // Do not auto-replace; show underline or tooltip in future versions.
-          el.setAttribute('aria-description', 'Proofread suggestion available');
+          // В этой версии показываем только доступность подсказки
+          el.setAttribute('aria-description', 'Доступно предложение по исправлению');
         }
       }
     );
@@ -318,28 +310,24 @@ function setupRealtimeProofreader() {
 
   attach(document);
   const mo = new MutationObserver((muts) => {
-    muts.forEach(m => m.addedNodes && m.addedNodes.forEach(n => {
-      if (n.nodeType === 1) attach(n);
-    }));
+    muts.forEach(m => m.addedNodes && m.addedNodes.forEach(n => { if (n.nodeType === 1) attach(n); }));
   });
   mo.observe(document.body, { childList: true, subtree: true });
 }
 
+// Дебаунс хелпер
 function debounce(fn, wait) {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(null, args), wait);
-  };
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, args), wait); };
 }
 
-// --- Autocomplete on Tab --- //
+// --- Автодополнение по клавише Tab --- //
 function setupAutocompleteOnTab() {
   if (!settings?.userPreferences?.autocompleteOnTab) return;
   const handler = async (e) => {
     if (e.key !== 'Tab') return;
     const el = e.target;
-    if (!(el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /text|search|email|url|tel/.test(el.type)) || el.isContentEditable)) return;
+    const isEditable = el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && /text|search|email|url|tel/.test(el.type)) || el.isContentEditable;
+    if (!isEditable) return;
     e.preventDefault();
     let textBefore = '';
     if (el.selectionStart != null && el.value != null) {
@@ -357,11 +345,7 @@ function setupAutocompleteOnTab() {
     if (!seed || seed.length < 5) return;
     chrome.runtime.sendMessage(
       { action: 'performAiAction', data: { type: 'autocomplete', payload: { text: seed } } },
-      (response) => {
-        if (response?.success && response.data) {
-          replaceInActiveEditable(response.data);
-        }
-      }
+      (response) => { if (response?.success && response.data) replaceInActiveEditable(response.data); }
     );
   };
 
@@ -374,9 +358,7 @@ function setupAutocompleteOnTab() {
 
   attach(document);
   const mo = new MutationObserver((muts) => {
-    muts.forEach(m => m.addedNodes && m.addedNodes.forEach(n => {
-      if (n.nodeType === 1) attach(n);
-    }));
+    muts.forEach(m => m.addedNodes && m.addedNodes.forEach(n => { if (n.nodeType === 1) attach(n); }));
   });
   mo.observe(document.body, { childList: true, subtree: true });
 }

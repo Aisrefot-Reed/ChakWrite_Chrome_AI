@@ -1,3 +1,6 @@
+// src/ui/popup/popup.js
+// Логика всплывающего окна: навигация, выбор режима, голосовой ввод, отправка AI-запросов.
+
 const mainDashboard = document.getElementById('main-dashboard');
 const settingsPanel = document.getElementById('settings-panel');
 const settingsBtn = document.getElementById('settings-btn');
@@ -9,13 +12,11 @@ const modeSwitcher = document.getElementById('mode-switcher');
 const mainTextarea = document.getElementById('main-textarea');
 const resultDisplay = document.getElementById('result-display');
 
-let currentMode = 'writer'; // Default mode
+let currentMode = 'writer'; // Режим по умолчанию
 let recognizing = false;
 let recognition;
 
-// --- Event Listeners ---
-
-// Navigation
+// --- Навигация по панелям --- //
 settingsBtn.addEventListener('click', () => {
   mainDashboard.classList.add('hidden');
   settingsPanel.classList.remove('hidden');
@@ -31,22 +32,22 @@ optionsLink.addEventListener('click', (e) => {
   chrome.runtime.openOptionsPage();
 });
 
-// Mode Switching
+// --- Переключение режимов --- //
 modeSwitcher.addEventListener('click', (e) => {
   if (e.target.classList.contains('mode-btn')) {
     document.querySelector('.mode-btn.active').classList.remove('active');
     e.target.classList.add('active');
     currentMode = e.target.dataset.mode;
-    mainTextarea.placeholder = `Text to ${currentMode}...`;
+    mainTextarea.placeholder = `Текст для режима: ${currentMode}...`;
   }
 });
 
-// Voice input (Web Speech API)
+// --- Голосовой ввод (Web Speech API) --- //
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
   recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
   recognition.continuous = false;
   recognition.interimResults = true;
-  recognition.lang = 'en-US';
+  recognition.lang = 'ru-RU'; // Русский для диктовки
   recognition.onresult = (event) => {
     let interim = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -62,46 +63,32 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
     micBtn.textContent = '🎤';
   };
   micBtn.addEventListener('click', () => {
-    if (!recognizing) {
-      recognition.start();
-      recognizing = true;
-      micBtn.textContent = '⏹️';
-    } else {
-      recognition.stop();
-    }
+    if (!recognizing) { recognition.start(); recognizing = true; micBtn.textContent = '⏹️'; }
+    else { recognition.stop(); }
   });
 } else {
   micBtn.disabled = true;
-  micBtn.title = 'Voice recognition not supported';
+  micBtn.title = 'Голосовое распознавание не поддерживается';
 }
 
-// Main Action
+// --- Выполнение основного действия --- //
 executeBtn.addEventListener('click', async () => {
   const text = mainTextarea.value.trim();
-  if (!text) {
-    resultDisplay.textContent = 'Please enter some text.';
-    return;
-  }
+  if (!text) { resultDisplay.textContent = 'Введите текст.'; return; }
 
-  resultDisplay.textContent = 'Thinking...';
+  resultDisplay.textContent = 'Думаю...';
   resultDisplay.setAttribute('aria-busy', 'true');
   executeBtn.disabled = true;
 
   chrome.runtime.sendMessage(
-    {
-      action: 'performAiAction',
-      data: {
-        type: currentMode,
-        payload: { text } // Simple payload, can be enriched
-      }
-    },
+    { action: 'performAiAction', data: { type: currentMode, payload: { text } } },
     (response) => {
       if (chrome.runtime.lastError) {
-        resultDisplay.textContent = `Error: ${chrome.runtime.lastError.message}`;
+        resultDisplay.textContent = `Ошибка: ${chrome.runtime.lastError.message}`;
       } else if (response.success) {
         resultDisplay.textContent = response.data;
       } else {
-        resultDisplay.textContent = `Error: ${response.error}`;
+        resultDisplay.textContent = `Ошибка: ${response.error}`;
       }
       executeBtn.disabled = false;
       resultDisplay.setAttribute('aria-busy', 'false');
