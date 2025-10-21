@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Настройки ChakWrite</title>
+  <!-- Страница настроек с визуальными и нейро-адаптациями -->
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Настройки</h1>
+
+    <!-- Нейро-адаптации -->
+    <section>
+      <h2>Нейро-адаптации</h2>
+      <div class="setting-item">
+        <label for="neuro-feature">Основной режим:</label>
+        <select id="neuro-feature">
+          <option value="none">Нет</option>
+          <option value="dyslexia">Дизлексия</option>
+          <option value="adhd">ADHD</option>
+          <option value="autism">Аутизм</option>
+        </select>
+        <small>Влияет на формулировки ответов и пост-форматирование.</small>
+      </div>
+    </section>
+
+    <!-- Визуальные настройки -->
+    <section>
+      <h2>Визуальные настройки</h2>
+      <div class="setting-item">
+        <label for="font-select">Шрифт для чтения:</label>
+        <select id="font-select">
+          <option value="default">Стандартный</option>
+          <option value="dyslexia">Дружественный при дизлексии (OpenDyslexic)</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="spacing-slider">Межстрочный интервал: <span id="spacing-value">1.5</span></label>
+        <input type="range" id="spacing-slider" min="1" max="2.5" step="0.1" value="1.5">
+      </div>
+      <div class="setting-item">
+        <label for="high-contrast-toggle">Высокая контрастность:</label>
+        <input type="checkbox" id="high-contrast-toggle">
+      </div>
+    </section>
+
+    <!-- Прочие предпочтения -->
+    <section>
+      <h2>Прочее</h2>
+      <div class="setting-item">
+        <label for="ocr-toggle">Включить OCR по клику на изображение:</label>
+        <input type="checkbox" id="ocr-toggle">
+      </div>
+      <div class="setting-item">
+        <label for="rt-proof-toggle">Проверка в реальном времени:</label>
+        <input type="checkbox" id="rt-proof-toggle">
+      </div>
+      <div class="setting-item">
+        <label for="autocomplete-tab-toggle">Автодополнение по Tab:</label>
+        <input type="checkbox" id="autocomplete-tab-toggle">
+      </div>
+    </section>
+
+    <button id="save-btn">Сохранить и применить</button>
+    <div id="status-message"></div>
+  </div>
+  <script src="options.js"></script>
+</body>
+</html>
