@@ -4,57 +4,77 @@
 
 /**
  * Проверяет доступность Chrome AI API.
- * @returns {boolean} True если window.ai или self.ai доступен.
+ * @returns {boolean} True если chrome.ml доступен.
  */
 function isAiAvailable() {
-  const aiContext = typeof window !== 'undefined' ? window.ai : (typeof self !== 'undefined' ? self.ai : null);
-  return !!aiContext;
+  return typeof chrome !== 'undefined' && chrome.ml && typeof chrome.ml.getModel === 'function';
 }
 
 /**
- * Получает объект AI в зависимости от контекста (window/self).
- * @returns {object|null} Объект AI или null
+ * Получает Gemini модель через chrome.ml API.
+ * @param {string} modelName - название модели (по умолчанию 'gemini-nano')
+ * @returns {Promise<object>} объект модели
  */
-function getAiContext() {
-  return typeof window !== 'undefined' ? window.ai : (typeof self !== 'undefined' ? self.ai : null);
+async function getGeminiModel(modelName = 'gemini-nano') {
+  if (!isAiAvailable()) {
+    throw new Error('chrome.ml API is not available');
+  }
+  return await chrome.ml.getModel(modelName);
 }
 
 /**
- * Безопасное создание сессии с проверкой доступности функций.
- * @param {string} apiType - тип API (languageModel, writer, rewriter, summarizer)
- * @param {object} options - опции для создания сессии
- * @returns {Promise<object>} созданная сессия
+ * Безопасное создание сессии с Gemini через chrome.ml.
+ * @param {string} apiType - тип API (для совместимости)
+ * @param {object} options - опции для модели
+ * @returns {Promise<object>} модель Gemini с методами generateText/prompt
  * @throws {AiApiError} если API недоступен
  */
 async function safeCreateSession(apiType, options = {}) {
-  const ai = getAiContext();
-  if (!ai) {
-    throw new AiApiError('Chrome AI API недоступен. Убедитесь что используется Chrome Canary/Dev с включённым флагом.', apiType);
-  }
-
-  // Feature detection - проверка доступности конкретного API
-  if (!ai[apiType]) {
-    throw new AiApiError(`API '${apiType}' не поддерживается в этой версии Chrome.`, apiType);
-  }
-
-  // Проверка capabilities (если метод есть)
-  if (ai[apiType].capabilities) {
-    try {
-      const capabilities = await ai[apiType].capabilities();
-      if (capabilities.available === 'no') {
-        throw new AiApiError(`API '${apiType}' недоступен (статус: ${capabilities.available}).`, apiType);
-      }
-    } catch (err) {
-      logError(err, `safeCreateSession capabilities check: ${apiType}`);
-      // Продолжаем даже если capabilities недоступен
-    }
+  if (!isAiAvailable()) {
+    throw new AiApiError('chrome.ml API is not available. Make sure you are using Chrome with Gemini support.', apiType);
   }
 
   try {
-    return await ai[apiType].create(options);
+    const model = await getGeminiModel();
+    
+    // Проверяем capabilities если доступны
+    if (typeof model.getCapabilities === 'function') {
+      try {
+        const capabilities = await model.getCapabilities();
+        console.log('Gemini capabilities:', capabilities);
+      } catch (err) {
+        logError(err, `safeCreateSession capabilities check: ${apiType}`);
+      }
+    }
+    
+    // Возвращаем обёртку с унифицированными методами
+    return {
+      model,
+      options,
+      async prompt(text) {
+        return await model.generateText({
+          prompt: text,
+          temperature: options.temperature || 0.7,
+          maxTokens: options.maxTokens || 1024,
+          topK: options.topK || 40,
+          topP: options.topP || 0.95
+        }).then(result => result.text || result);
+      },
+      async write(text) {
+        return await this.prompt(`Write text based on: "${text}"`);
+      },
+      async rewrite(text, config) {
+        const tone = config?.tone || 'as-is';
+        const length = config?.length || 'as-is';
+        return await this.prompt(`Rewrite this text (tone: ${tone}, length: ${length}): "${text}"`);
+      },
+      async summarize(text) {
+        return await this.prompt(`Create a summary of this text: "${text}"`);
+      }
+    };
   } catch (error) {
     logError(error, `safeCreateSession: ${apiType}`);
-    throw new AiApiError(`Не удалось создать сессию '${apiType}': ${error.message}`, apiType);
+    throw new AiApiError(`Failed to create session '${apiType}': ${error.message}`, apiType);
   }
 }
 
