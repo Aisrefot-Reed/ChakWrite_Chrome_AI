@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChakWrite — Ассистент письма</title>
+    <style>
+        :root {
+            --bg: #0b0d12;
+            --panel: #ffffff;
+            --border: #e5e7eb;
+            --text: #111827;
+            --muted: #6b7280;
+            --primary: #2563eb;
+            --primary-600: #1d4ed8;
+            --surface: #f8fafc;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b0d12;
+                --panel: #0f172a;
+                --border: #1f2937;
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --surface: #0b1220;
+            }
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            color: var(--text);
+            background: linear-gradient(180deg, var(--surface), var(--bg));
+            display: grid;
+            place-items: center;
+            padding: 24px;
+        }
+        .card {
+            width: 100%;
+            max-width: 640px;
+            background: linear-gradient(135deg,
+                color-mix(in oklab, var(--panel), transparent 65%),
+                color-mix(in oklab, var(--panel), transparent 65%)
+            );
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.12);
+            overflow: clip;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header h1 {
+            font-size: 18px;
+            line-height: 1.2;
+            margin: 0;
+        }
+        .sub { color: var(--muted); font-size: 12px; }
+        .body { padding: 16px; display: grid; gap: 12px; }
+        label { font-size: 12px; color: var(--muted); }
+        select, textarea, button {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font: inherit;
+        }
+        select, textarea { padding: 10px 12px; }
+        textarea { min-height: 140px; resize: vertical; }
+        button {
+            padding: 12px 14px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover:not(:disabled) { background: var(--primary-600); }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+        #output {
+            border-radius: 12px;
+            background: color-mix(in oklab, var(--panel), transparent 80%);
+            border: 1px dashed var(--border);
+            padding: 12px;
+            min-height: 90px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .row { display: grid; gap: 8px; }
+    </style>
+</head>
+<body>
+    <main class="card" role="main">
+        <div class="header">
+            <h1>ChakWrite — ассистент письма</h1>
+            <span class="sub">Write · Rewrite · Proofread · Summarize</span>
+        </div>
+        <div class="body">
+            <div class="row">
+                <label for="modeSelect">Режим</label>
+                <select id="modeSelect">
+                    <option value="write">Write — Создание текста</option>
+                    <option value="rewrite" selected>Rewrite — Изменение стиля</option>
+                    <option value="proofread">Proofread — Проверка орфографии</option>
+                    <option value="summarize">Summarize — Суммаризация</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="userInput">Текст</label>
+                <textarea id="userInput" placeholder="Введите текст..."></textarea>
+            </div>
+            <button id="submitBtn">Обработать</button>
+            <div id="output" aria-live="polite">Результат...</div>
+        </div>
+    </main>
+
+    <script src="../../scripts/writer.js"></script>
+    <script src="../../scripts/rewriter.js"></script>
+    <script src="../../scripts/proofreader.js"></script>
+    <script src="../../scripts/summarizer.js"></script>
+    <script src="../../scripts/app.js"></script>
+</body>
+</html>
