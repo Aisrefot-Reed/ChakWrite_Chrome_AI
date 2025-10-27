@@ -48,56 +48,6 @@
         <div id="output" aria-live="polite">Результат появится здесь...</div>
     </div>
 
-    <script>
-        // Settings panel toggle
-        document.getElementById('settingsBtn').addEventListener('click', function() {
-            const panel = document.getElementById('settingsPanel');
-            panel.classList.toggle('active');
-        });
-
-        // Mode button handling
-        document.addEventListener('DOMContentLoaded', function() {
-            const modeButtons = document.querySelectorAll('.mode-btn');
-            const promptAPIToggle = document.getElementById('promptAPIToggle');
-
-            // Load active mode from storage
-            chrome.storage.local.get(['activeMode', 'promptAPIEnabled', 'overlayEnabled'], function(result) {
-                const activeMode = result.activeMode || 'dyslexia';
-                
-                // Update UI to show active mode
-                modeButtons.forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.mode === activeMode);
-                });
-
-                // Update toggles
-                if (promptAPIToggle) {
-                    promptAPIToggle.checked = result.promptAPIEnabled !== false;
-                }
-            });
-
-            // Handle mode button clicks
-            modeButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const mode = this.dataset.mode;
-                    
-                    // Update UI
-                    modeButtons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Save to storage
-                    chrome.storage.local.set({ activeMode: mode }, function() {
-                        console.log('Mode changed to:', mode);
-                    });
-                });
-            });
-
-            // Handle Prompt API toggle
-            if (promptAPIToggle) {
-                promptAPIToggle.addEventListener('change', function() {
-                    chrome.storage.local.set({ promptAPIEnabled: this.checked });
-                });
-            }
-        });
-    </script>
+    <script src="popup.js"></script>
 </body>
 </html>

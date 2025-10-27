@@ -2,17 +2,25 @@
 
 .chakwrite-overlay {
     position: absolute;
-    z-index: 999999;
+    z-index: 2147483647 !important; /* Maximum z-index value */
     display: none;
-    pointer-events: auto;
+    pointer-events: none; /* Overlay container doesn't block clicks */
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+.chakwrite-overlay * {
+    pointer-events: auto; /* But children (buttons) are clickable */
 }
 
 .chakwrite-overlay.visible {
-    display: block;
+    display: block !important;
+    opacity: 1;
     animation: fadeIn 0.2s ease-out;
 }
 
 .chakwrite-overlay.hiding {
+    opacity: 0;
     animation: fadeOut 0.2s ease-out;
 }
 

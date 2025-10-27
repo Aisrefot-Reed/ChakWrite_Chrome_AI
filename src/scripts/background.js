@@ -1,12 +1,8 @@
 // background.js - Service worker for handling text processing requests
 // Load mode processors (will be injected as separate scripts in manifest)
 
-// Import mode processors dynamically
-importScripts(
-    'modes/dyslexia.js',
-    'modes/adhd.js',
-    'modes/autism.js'
-);
+// Import consolidated mode processors
+importScripts('modes.js');
 
 // Mode registry
 const modes = {
