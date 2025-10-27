@@ -18,7 +18,8 @@
     "default_title": "ChakWrite"
   },
   "background": {
-    "service_worker": "src/scripts/background.js"
+    "service_worker": "src/scripts/background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
@@ -41,6 +42,7 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "tabs"
   ]
 }

@@ -1,4 +1,9 @@
-// modes.js - Consolidated neurotype modes
+// В начале modes.js оставить все определения как есть, но в конце добавить:
+export {
+    dyslexiaMode,
+    adhdMode,
+    autismMode
+}; // modes.js - Consolidated neurotype modes
 // Combines dyslexia, ADHD, and autism modes into single file
 
 // Dyslexia-Friendly Mode

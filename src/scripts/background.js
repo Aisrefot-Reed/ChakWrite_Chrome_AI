@@ -2,7 +2,7 @@
 // Load mode processors (will be injected as separate scripts in manifest)
 
 // Import consolidated mode processors
-importScripts('modes.js');
+import { dyslexiaMode, adhdMode, autismMode } from './modes.js';
 
 // Mode registry
 const modes = {
