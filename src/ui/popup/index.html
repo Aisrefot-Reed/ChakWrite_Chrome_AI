@@ -4,102 +4,100 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ChakWrite — Popup</title>
-    <style>
-        :root {
-            --panel: #ffffff;
-            --border: #e5e7eb;
-            --text: #111827;
-            --muted: #6b7280;
-            --primary: #2563eb;
-            --primary-600: #1d4ed8;
-            --surface: #f8fafc;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --panel: #0f172a;
-                --border: #1f2937;
-                --text: #e5e7eb;
-                --muted: #9ca3af;
-                --surface: #0b1220;
-            }
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-            color: var(--text);
-            background: var(--surface);
-            min-width: 340px;
-            max-width: 420px;
-            padding: 12px;
-        }
-        .card {
-            background: color-mix(in oklab, var(--panel), transparent 65%);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.12);
-            padding: 14px;
-        }
-        h3 { margin: 0 0 8px 0; font-size: 16px; }
-        .mode-selector { margin-bottom: 10px; }
-        select, textarea, button {
-            width: 100%;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: transparent;
-            color: var(--text);
-            font: inherit;
-        }
-        select { padding: 8px 10px; }
-        textarea {
-            min-height: 120px;
-            margin: 8px 0 10px 0;
-            padding: 10px 12px;
-            resize: vertical;
-        }
-        button {
-            padding: 10px 12px;
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        button:hover:not(:disabled) { background: var(--primary-600); }
-        button:disabled { opacity: .6; cursor: not-allowed; }
-        #output {
-            margin-top: 10px;
-            padding: 10px 12px;
-            border: 1px dashed var(--border);
-            border-radius: 10px;
-            min-height: 90px;
-            background: color-mix(in oklab, var(--panel), transparent 80%);
-            word-wrap: break-word;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="card">
-        <h3>ChakWrite</h3>
-        <div class="mode-selector">
-            <select id="modeSelect">
-                <option value="write">Write — Создание текста</option>
-                <option value="rewrite" selected>Rewrite — Изменение стиля</option>
-                <option value="proofread">Proofread — Проверка орфографии</option>
-                <option value="summarize">Summarize — Суммаризация</option>
-            </select>
+        <div class="header">
+            <h3>ChakWrite</h3>
+            <button class="settings-btn" id="settingsBtn" title="Настройки">⚙️</button>
+        </div>
+        
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-item">
+                <label for="promptAPIToggle">Prompt API</label>
+                <input type="checkbox" id="promptAPIToggle" class="toggle-checkbox" checked>
+            </div>
+        </div>
+        
+        <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="dyslexia">
+                <span class="mode-icon dyslexia"></span>
+                <span class="mode-label">
+                    <strong>Dyslexia-Friendly</strong>
+                    <small>Short sentences, common words</small>
+                </span>
+            </button>
+            <button class="mode-btn" data-mode="adhd">
+                <span class="mode-icon adhd"></span>
+                <span class="mode-label">
+                    <strong>ADHD Focus</strong>
+                    <small>Bullet points, key highlights</small>
+                </span>
+            </button>
+            <button class="mode-btn" data-mode="autism">
+                <span class="mode-icon autism"></span>
+                <span class="mode-label">
+                    <strong>Clear & Direct</strong>
+                    <small>Literal, concrete language</small>
+                </span>
+            </button>
         </div>
         <textarea id="userInput" placeholder="Введите текст..."></textarea>
         <button id="submitBtn">Обработать</button>
         <div id="output" aria-live="polite">Результат появится здесь...</div>
     </div>
 
-    <script src="../../scripts/writer.js"></script>
-    <script src="../../scripts/rewriter.js"></script>
-    <script src="../../scripts/proofreader.js"></script>
-    <script src="../../scripts/summarizer.js"></script>
-    <script src="../../scripts/app.js"></script>
+    <script>
+        // Settings panel toggle
+        document.getElementById('settingsBtn').addEventListener('click', function() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('active');
+        });
+
+        // Mode button handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            const promptAPIToggle = document.getElementById('promptAPIToggle');
+
+            // Load active mode from storage
+            chrome.storage.local.get(['activeMode', 'promptAPIEnabled', 'overlayEnabled'], function(result) {
+                const activeMode = result.activeMode || 'dyslexia';
+                
+                // Update UI to show active mode
+                modeButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === activeMode);
+                });
+
+                // Update toggles
+                if (promptAPIToggle) {
+                    promptAPIToggle.checked = result.promptAPIEnabled !== false;
+                }
+            });
+
+            // Handle mode button clicks
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const mode = this.dataset.mode;
+                    
+                    // Update UI
+                    modeButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Save to storage
+                    chrome.storage.local.set({ activeMode: mode }, function() {
+                        console.log('Mode changed to:', mode);
+                    });
+                });
+            });
+
+            // Handle Prompt API toggle
+            if (promptAPIToggle) {
+                promptAPIToggle.addEventListener('change', function() {
+                    chrome.storage.local.set({ promptAPIEnabled: this.checked });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

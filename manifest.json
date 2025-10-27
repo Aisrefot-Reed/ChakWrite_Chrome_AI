@@ -1,13 +1,36 @@
 {
   "manifest_version": 3,
-  "name": "Text Rewriter",
-  "version": "1.0",
-  "description": "Расширение для изменения стиля текста",
+  "name": "ChakWrite AI Assistant",
+  "version": "1.2",
+  "description": "Neuro-inclusive AI writing assistant with dyslexia, ADHD, and autism-friendly modes",
   "action": {
     "default_popup": "src/ui/popup/index.html",
-    "default_title": "Text Rewriter"
+    "default_title": "ChakWrite"
   },
+  "background": {
+    "service_worker": "src/scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/scripts/overlay.js"],
+      "css": ["styles/overlay.css", "styles/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "fonts/OpenDyslexic-Regular.otf",
+        "styles/overlay.css",
+        "styles/content.css"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "storage",
+    "scripting"
   ]
 }

@@ -1,0 +1,39 @@
+/* ChakWrite Content Script Styles */
+/* Load dyslexia-friendly font */
+@font-face {
+    font-family: 'OpenDyslexic';
+    src: url('chrome-extension://__MSG_@@extension_id__/fonts/OpenDyslexic-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Apply dyslexia mode styles when active */
+body.chakwrite-dyslexia-mode,
+body.chakwrite-dyslexia-mode * {
+    font-family: 'OpenDyslexic', Arial, sans-serif !important;
+    line-height: 1.8 !important;
+    letter-spacing: 0.12em !important;
+    word-spacing: 0.16em !important;
+}
+
+/* Increase font size slightly for better readability */
+body.chakwrite-dyslexia-mode {
+    font-size: 1.1em !important;
+}
+
+/* Ensure good contrast */
+body.chakwrite-dyslexia-mode p,
+body.chakwrite-dyslexia-mode span,
+body.chakwrite-dyslexia-mode div {
+    color: #000 !important;
+    background: #fff !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    body.chakwrite-dyslexia-mode p,
+    body.chakwrite-dyslexia-mode span,
+    body.chakwrite-dyslexia-mode div {
+        color: #fff !important;
+        background: #000 !important;
+    }
+}
