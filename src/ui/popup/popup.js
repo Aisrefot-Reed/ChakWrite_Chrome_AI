@@ -1,6 +1,35 @@
 // ChakWrite popup script
 console.log('ChakWrite popup loaded');
 
+// Theme management
+function detectBrowserTheme() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return 'dark';
+    }
+    return 'light';
+}
+
+function applyTheme(theme) {
+    document.body.className = theme === 'light' ? 'light-theme' : 'dark-theme';
+    console.log('Theme applied:', theme);
+}
+
+function loadThemePreference() {
+    chrome.storage.local.get(['userTheme'], (result) => {
+        const savedTheme = result.userTheme || detectBrowserTheme();
+        applyTheme(savedTheme);
+        
+        // Update toggle to match theme
+        const lightThemeToggle = document.getElementById('lightThemeToggle');
+        if (lightThemeToggle) {
+            lightThemeToggle.checked = (savedTheme === 'light');
+        }
+    });
+}
+
+// Load theme immediately
+loadThemePreference();
+
 // Settings panel toggle with debugging
 const settingsBtn = document.getElementById('settingsBtn');
 console.log('Settings button found:', settingsBtn);
@@ -65,6 +94,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (promptAPIToggle) {
         promptAPIToggle.addEventListener('change', function() {
             chrome.storage.local.set({ promptAPIEnabled: this.checked });
+        });
+    }
+    
+    // Handle Light Theme toggle
+    const lightThemeToggle = document.getElementById('lightThemeToggle');
+    if (lightThemeToggle) {
+        lightThemeToggle.addEventListener('change', function() {
+            const newTheme = this.checked ? 'light' : 'dark';
+            applyTheme(newTheme);
+            chrome.storage.local.set({ userTheme: newTheme });
+            console.log('Theme changed to:', newTheme);
         });
     }
 });
