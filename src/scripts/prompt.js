@@ -15,7 +15,7 @@ let currentSession = null;
 async function checkPromptAPIAvailability() {
     try {
         if (!('LanguageModel' in self)) {
-            console.warn('Prompt API не поддерживается в этом браузере');
+            console.warn('Prompt API is not supported in this browser');
             return 'unavailable';
         }
         
@@ -23,7 +23,7 @@ async function checkPromptAPIAvailability() {
         console.log('Prompt API availability:', availability);
         return availability;
     } catch (error) {
-        console.error('Ошибка проверки доступности Prompt API:', error);
+        console.error('Prompt API availability check error:', error);
         return 'unavailable';
     }
 }
@@ -34,7 +34,7 @@ async function createPromptSession(options = {}) {
         const availability = await checkPromptAPIAvailability();
         
         if (availability === 'unavailable') {
-            throw new Error('Prompt API недоступен');
+            throw new Error('Prompt API is unavailable');
         }
         
         const params = await LanguageModel.params();
@@ -53,7 +53,7 @@ async function createPromptSession(options = {}) {
             sessionOptions.monitor = (m) => {
                 m.addEventListener('downloadprogress', (e) => {
                     const progress = (e.loaded / e.total * 100).toFixed(1);
-                    console.log(`Загрузка модели: ${progress}%`);
+                    console.log(`Model download: ${progress}%`);
                 });
             };
         }
@@ -62,7 +62,7 @@ async function createPromptSession(options = {}) {
         console.log('Session created successfully');
         return session;
     } catch (error) {
-        console.error('Ошибка создания сессии:', error);
+        console.error('Session creation error:', error);
         throw error;
     }
 }
@@ -85,7 +85,7 @@ async function promptWithAPI(userText, options = {}) {
         const result = await session.prompt(userText, options);
         return result;
     } catch (error) {
-        console.error('Ошибка при промпте:', error);
+        console.error('Prompt error:', error);
         throw error;
     }
 }
@@ -100,7 +100,7 @@ async function promptStreamingWithAPI(userText, options = {}) {
         const stream = session.promptStreaming(userText, options);
         return stream;
     } catch (error) {
-        console.error('Ошибка при стриминг-промпте:', error);
+        console.error('Streaming prompt error:', error);
         throw error;
     }
 }
@@ -118,14 +118,14 @@ function destroySession() {
 async function cloneSession(options = {}) {
     try {
         if (!currentSession) {
-            throw new Error('Нет активной сессии для клонирования');
+            throw new Error('No active session to clone');
         }
         
         const cloned = await currentSession.clone(options);
         console.log('Session cloned successfully');
         return cloned;
     } catch (error) {
-        console.error('Ошибка при клонировании сессии:', error);
+        console.error('Session cloning error:', error);
         throw error;
     }
 }
@@ -136,15 +136,15 @@ async function processTextWithPromptAPI(userText) {
         const availability = await checkPromptAPIAvailability();
         
         if (availability === 'unavailable') {
-            return 'Prompt API недоступен в этом браузере. Попробуйте использовать другие режимы.';
+            return 'Prompt API is unavailable in this browser. Try other modes.';
         }
         
         // Use non-streamed for simplicity, can switch to streaming if needed
         const result = await promptWithAPI(userText);
-        return result || 'Результат не получен';
+        return result || 'No result received';
     } catch (error) {
-        console.error('Ошибка обработки текста:', error);
-        return `Ошибка: ${error.message}`;
+        console.error('Text processing error:', error);
+        return `Error: ${error.message}`;
     }
 }
 

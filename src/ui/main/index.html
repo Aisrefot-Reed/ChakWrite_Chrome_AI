@@ -1,33 +1,33 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ChakWrite — Ассистент письма</title>
+    <title>ChakWrite — Writing Assistant</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <main class="card" role="main">
         <div class="header">
-            <h1>ChakWrite — ассистент письма</h1>
+            <h1>ChakWrite — Writing Assistant</h1>
             <span class="sub">Write · Rewrite · Proofread · Summarize</span>
         </div>
         <div class="body">
             <div class="row">
-                <label for="modeSelect">Режим</label>
+                <label for="modeSelect">Mode</label>
                 <select id="modeSelect">
-                    <option value="write">Write — Создание текста</option>
-                    <option value="rewrite" selected>Rewrite — Изменение стиля</option>
-                    <option value="proofread">Proofread — Проверка орфографии</option>
-                    <option value="summarize">Summarize — Суммаризация</option>
+                    <option value="write">Write — Create text</option>
+                    <option value="rewrite" selected>Rewrite — Change style</option>
+                    <option value="proofread">Proofread — Check spelling</option>
+                    <option value="summarize">Summarize — Summarization</option>
                 </select>
             </div>
             <div class="row">
-                <label for="userInput">Текст</label>
-                <textarea id="userInput" placeholder="Введите текст..."></textarea>
+                <label for="userInput">Text</label>
+                <textarea id="userInput" placeholder="Enter text..."></textarea>
             </div>
-            <button id="submitBtn">Обработать</button>
-            <div id="output" aria-live="polite">Результат...</div>
+            <button id="submitBtn">Process</button>
+            <div id="output" aria-live="polite">Result...</div>
         </div>
     </main>
 

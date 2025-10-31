@@ -1,4 +1,4 @@
-// app.js - основной файл с переключением режимов
+// app.js - main file with mode switching
 document.addEventListener('DOMContentLoaded', function() {
     const modeSelect = document.getElementById('modeSelect');
     const submitBtn = document.getElementById('submitBtn');
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     submitBtn.addEventListener('click', handleSubmit);
 
-    // Функция для определения текущего режима
+    // Function to determine current mode
     function getCurrentMode() {
         return modeSelect.value;
     }
@@ -35,11 +35,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const userText = userInput.value.trim();
         
         if (!userText) {
-            outputElement.textContent = 'Пожалуйста, введите текст';
+            outputElement.textContent = 'Please enter text';
             return;
         }
 
-        outputElement.textContent = 'Обработка...';
+        outputElement.textContent = 'Processing...';
         submitBtn.disabled = true;
         
         try {
@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Use Prompt API if enabled and mode is 'prompt'
             if (mode === 'prompt') {
                 if (!promptEnabled) {
-                    result = 'Prompt API отключен в настройках. Включите его для использования.';
+                    result = 'Prompt API is disabled in settings. Enable it to use.';
                 } else if (typeof processTextWithPromptAPI === 'function') {
                     result = await processTextWithPromptAPI(userText);
                 } else {
-                    result = 'Prompt API не загружен';
+                    result = 'Prompt API not loaded';
                 }
             } else {
                 // Use other modes
@@ -63,40 +63,40 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (typeof processTextWithRewriter === 'function') {
                             result = await processTextWithRewriter(userText);
                         } else {
-                            result = 'Функция rewrite не доступна';
+                            result = 'Rewrite function not available';
                         }
                         break;
                     case 'write':
                         if (typeof processTextWithWriter === 'function') {
                             result = await processTextWithWriter(userText);
                         } else {
-                            result = 'Функция write не доступна';
+                            result = 'Write function not available';
                         }
                         break;
                     case 'proofread':
                         if (typeof processTextWithProofreader === 'function') {
                             result = await processTextWithProofreader(userText);
                         } else {
-                            result = 'Функция proofread не доступна';
+                            result = 'Proofread function not available';
                         }
                         break;
                     case 'summarize':
                         if (typeof processTextWithSummarizer === 'function') {
                             result = await processTextWithSummarizer(userText);
                         } else {
-                            result = 'Функция summarize не доступна';
+                            result = 'Summarize function not available';
                         }
                         break;
                     default:
-                        result = 'Неизвестный режим';
+                        result = 'Unknown mode';
                 }
             }
             
-            outputElement.textContent = result || 'Результат не получен';
+            outputElement.textContent = result || 'No result received';
             
         } catch (error) {
-            console.error('Ошибка:', error);
-            outputElement.textContent = 'Ошибка: ' + error.message;
+            console.error('Error:', error);
+            outputElement.textContent = 'Error: ' + error.message;
         } finally {
             submitBtn.disabled = false;
         }

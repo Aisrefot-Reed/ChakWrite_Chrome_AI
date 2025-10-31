@@ -267,24 +267,221 @@
         }
     }
 
-    // Process text based on action and mode
+    // Process text based on action and mode (run AI in content context)
     async function processText(action, text) {
-        return new Promise((resolve, reject) => {
-            chrome.runtime.sendMessage({
-                action: 'processText',
-                mode: activeMode,
-                textAction: action,
-                text: text
-            }, (response) => {
-                if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                } else if (response.error) {
-                    reject(new Error(response.error));
-                } else {
-                    resolve(response.result);
+        const mode = activeMode || 'dyslexia';
+        try {
+            if (mode === 'dyslexia') {
+                return await processDyslexia(action, text);
+            } else if (mode === 'adhd') {
+                return await processADHD(action, text);
+            } else if (mode === 'autism') {
+                return await processAutism(action, text);
+            }
+            throw new Error('Unknown mode');
+        } catch (e) {
+            return text; // graceful fallback
+        }
+    }
+
+    async function processDyslexia(action, text) {
+        switch (action) {
+            case 'simplify': {
+                const caps = await safeCaps(() => self.ai?.rewriter?.capabilities());
+                if (!caps || caps.available === 'no') return fallbackSimplify(text);
+                const rewriter = await self.ai.rewriter.create({
+                    sharedContext: 'Simplify for dyslexia: short sentences, common words, clear structure.',
+                    tone: 'casual',
+                    format: 'plain-text',
+                    length: 'shorter'
+                });
+                return await rewriter.rewrite(text);
+            }
+            case 'expand': {
+                const caps = await safeCaps(() => self.ai?.writer?.capabilities());
+                if (!caps || caps.available === 'no') return text + '\n\n[Writer API not available]';
+                const writer = await self.ai.writer.create({
+                    sharedContext: 'Expand with simple language and examples for dyslexia.',
+                    tone: 'casual',
+                    format: 'plain-text',
+                    length: 'medium'
+                });
+                return await writer.write(`Expand this text with more details: ${text}`, { context: 'Use short sentences and common words.' });
+            }
+            case 'grammar': {
+                const caps = await safeCaps(() => self.ai?.languageModel?.capabilities());
+                if (!caps || caps.available === 'no') return text + '\n\n[Grammar checker not available]';
+                const session = await self.ai.languageModel.create();
+                const result = await session.prompt(`Check and correct grammar in this text:\n\n${text}`);
+                return result || text;
+            }
+        }
+        throw new Error('Unknown action');
+    }
+
+    async function processADHD(action, text) {
+        switch (action) {
+            case 'simplify': {
+                const caps = await safeCaps(() => self.ai?.summarizer?.capabilities());
+                if (!caps || caps.available === 'no') return fallbackBullets(text);
+                const summarizer = await self.ai.summarizer.create({
+                    type: 'key-points',
+                    format: 'plain-text',
+                    length: 'short',
+                    sharedContext: 'Extract key points as short, clear bullet points for ADHD.'
+                });
+                const summary = await summarizer.summarize(text);
+                if (!summary.includes('•') && !summary.includes('*') && !summary.includes('-')) {
+                    const sentences = summary.split(/[.!?]+/).filter(s => s.trim());
+                    return sentences.map(s => `• ${s.trim()}`).join('\n');
                 }
-            });
+                return summary;
+            }
+            case 'expand': {
+                const caps = await safeCaps(() => self.ai?.writer?.capabilities());
+                if (!caps || caps.available === 'no') return fallbackStructure(text);
+                const writer = await self.ai.writer.create({
+                    sharedContext: 'Restructure with headings, short paragraphs, transitions for ADHD.',
+                    tone: 'casual',
+                    format: 'plain-text',
+                    length: 'medium'
+                });
+                return await writer.write(
+                    `Restructure this text with clear sections and transitions:\n\n${text}`,
+                    { context: 'Use short paragraphs, bullet points, and clear transitions between ideas.' }
+                );
+            }
+            case 'grammar': {
+                const caps = await safeCaps(() => self.ai?.languageModel?.capabilities());
+                if (!caps || caps.available === 'no') return text + '\n\n[Grammar checker not available]';
+                const session = await self.ai.languageModel.create();
+                const result = await session.prompt(`Check and correct grammar in this text:\n\n${text}`);
+                return result || text;
+            }
+        }
+        throw new Error('Unknown action');
+    }
+
+    async function processAutism(action, text) {
+        switch (action) {
+            case 'simplify': {
+                const caps = await safeCaps(() => self.ai?.rewriter?.capabilities());
+                if (!caps || caps.available === 'no') return fallbackLiteral(text);
+                const rewriter = await self.ai.rewriter.create({
+                    sharedContext: 'Rewrite using literal, concrete, direct language. Remove metaphors and ambiguity.',
+                    tone: 'formal',
+                    format: 'plain-text',
+                    length: 'as-is'
+                });
+                return await rewriter.rewrite(text);
+            }
+            case 'expand': {
+                const caps = await safeCaps(() => self.ai?.writer?.capabilities());
+                if (!caps || caps.available === 'no') return text + '\n\n[Writer API not available]';
+                const writer = await self.ai.writer.create({
+                    sharedContext: 'Add concrete examples and specific details. Avoid vague language.',
+                    tone: 'formal',
+                    format: 'plain-text',
+                    length: 'medium'
+                });
+                return await writer.write(
+                    `Add concrete examples and specific details to this text:\n\n${text}`,
+                    { context: 'Use literal language. Be specific and direct. Avoid metaphors or abstract concepts.' }
+                );
+            }
+            case 'grammar': {
+                const caps = await safeCaps(() => self.ai?.languageModel?.capabilities());
+                if (!caps || caps.available === 'no') return text + '\n\n[Grammar checker not available]';
+                const session = await self.ai.languageModel.create();
+                const result = await session.prompt(`Check and correct grammar in this text:\n\n${text}`);
+                return result || text;
+            }
+        }
+        throw new Error('Unknown action');
+    }
+
+    async function safeCaps(fn) {
+        try {
+            return await fn();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function fallbackSimplify(text) {
+        let result = text.replace(/([.!?])\s+/g, '$1\n\n');
+        const replacements = {
+            'utilize': 'use',
+            'demonstrate': 'show',
+            'accomplish': 'do',
+            'subsequently': 'then',
+            'furthermore': 'also',
+            'nevertheless': 'but',
+            'therefore': 'so',
+            'approximately': 'about',
+            'sufficient': 'enough',
+            'assistance': 'help'
+        };
+        for (const [complex, simple] of Object.entries(replacements)) {
+            const regex = new RegExp(`\\b${complex}\\b`, 'gi');
+            result = result.replace(regex, simple);
+        }
+        return result;
+    }
+
+    function fallbackBullets(text) {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+        const keyPoints = sentences.slice(0, Math.min(5, sentences.length));
+        return keyPoints.map(s => `• ${s.trim()}`).join('\n');
+    }
+
+    function fallbackStructure(text) {
+        const paragraphs = text.split(/\n\n+/);
+        const transitions = ['First:', 'Then:', 'Next:', 'Also:', 'Finally:'];
+        let result = '';
+        paragraphs.forEach((para, index) => {
+            if (index < transitions.length) {
+                result += `${transitions[index]} ${para}\n\n`;
+            } else {
+                result += `${para}\n\n`;
+            }
         });
+        return result.trim();
+    }
+
+    function fallbackLiteral(text) {
+        const replacements = {
+            'piece of cake': 'easy',
+            'break a leg': 'good luck',
+            'hit the nail on the head': 'exactly correct',
+            'raining cats and dogs': 'raining heavily',
+            'spill the beans': 'reveal a secret',
+            'under the weather': 'sick',
+            'costs an arm and a leg': 'very expensive',
+            'once in a blue moon': 'rarely',
+            'the ball is in your court': 'it is your turn to make a decision',
+            'barking up the wrong tree': 'looking in the wrong place',
+            'at the end of the day': 'ultimately',
+            'think outside the box': 'think creatively',
+            'on the same page': 'in agreement',
+            'touch base': 'contact',
+            'circle back': 'return to discuss',
+            'low-hanging fruit': 'easy tasks',
+            'move the needle': 'make progress',
+            'take it offline': 'discuss privately',
+            'deep dive': 'detailed examination',
+            'game changer': 'significant innovation'
+        };
+        let result = text;
+        for (const [metaphor, literal] of Object.entries(replacements)) {
+            const regex = new RegExp(`\\b${metaphor}\\b`, 'gi');
+            result = result.replace(regex, literal);
+        }
+        result = result.replace(/could you\s+/gi, 'please ');
+        result = result.replace(/would you mind\s+/gi, 'please ');
+        result = result.replace(/\b(um|uh|like|you know|I mean)\b/gi, '');
+        result = result.replace(/\s+/g, ' ').trim();
+        return result;
     }
 
     // Replace selected text with processed result
